@@ -16,7 +16,7 @@ import { NewsService } from '../services/news.js';
 
 // State
 let appState = {
-  currentTab: 'followed',
+  currentTab: 'discover',
   searchQuery: '',
   discoverSport: 'all',  // 'all' | 'leagues' | 'football' | 'cricket' | 'f1'
   discoverQuery: '',
@@ -30,8 +30,8 @@ let appState = {
   newsData: null,
   favorites: null,
   followedMatches: [],
-  refreshSecondsLeft: 30,
-  refreshIntervalTotal: 30,
+  refreshSecondsLeft: 10,
+  refreshIntervalTotal: 10,
   countdownTimer: null
 };
 
@@ -63,9 +63,6 @@ const elements = {
   globalLivePill: document.getElementById('global-live-pill'),
   globalLiveCount: document.getElementById('global-live-count'),
   badgeFollowed: document.getElementById('badge-followed'),
-  badgeFootball: document.getElementById('badge-football'),
-  badgeCricket: document.getElementById('badge-cricket'),
-  badgeF1: document.getElementById('badge-f1'),
   loadingSpinner: document.getElementById('loading-spinner'),
   lastUpdatedText: document.getElementById('last-updated-text'),
   
@@ -180,9 +177,13 @@ function setupEventListeners() {
 
   // Manual Refresh
   elements.refreshBtn.addEventListener('click', async () => {
-    elements.refreshBtn.classList.add('rotating');
-    await fetchLiveScores(true);
-    elements.refreshBtn.classList.remove('rotating');
+    triggerRefreshAnimation(true);
+    const fetchTask = fetchLiveScores(true);
+    await Promise.all([
+      fetchTask,
+      new Promise(r => setTimeout(r, 1700))
+    ]);
+    triggerRefreshAnimation(false);
     resetRefreshTimer();
   });
 
@@ -382,10 +383,10 @@ async function restoreTabState() {
           document.querySelectorAll('[data-cr-filter]').forEach(b => b.classList.toggle('active', b.dataset.crFilter === saved.cricketFilter));
         }
       } else {
-        // First time opening in current browser session: ALWAYS open Following tab!
-        appState.currentTab = 'followed';
-        elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'followed'));
-        elements.tabViews.forEach(v => v.classList.toggle('active', v.id === 'tab-followed'));
+        // First time opening in browser session: Default to Discover tab!
+        appState.currentTab = 'discover';
+        elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'discover'));
+        elements.tabViews.forEach(v => v.classList.toggle('active', v.id === 'tab-discover'));
       }
       resolve();
     };
@@ -409,9 +410,12 @@ async function loadCachedData() {
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
     chrome.storage.local.get(['scorequick_latest_data', 'scorequick_poll_interval', 'scorequick_notifications_enabled'], res => {
       if (res?.scorequick_poll_interval) {
-        const clampedInterval = Math.min(Math.max(Number(res.scorequick_poll_interval) || 30, 10), 60);
+        const clampedInterval = Math.min(Math.max(Number(res.scorequick_poll_interval) || 10, 10), 60);
         appState.refreshIntervalTotal = clampedInterval;
         elements.pollIntervalSelect.value = String(clampedInterval);
+      } else {
+        appState.refreshIntervalTotal = 10;
+        elements.pollIntervalSelect.value = '10';
       }
       if (res?.scorequick_notifications_enabled !== undefined) {
         elements.toggleNotifications.checked = res.scorequick_notifications_enabled;
@@ -516,53 +520,45 @@ function renderCurrentTabView() {
 }
 
 function updateBadges() {
-  const followedCount = appState.followedMatches.length;
-  const liveFollowed = appState.followedMatches.filter(m => m.isLive).length;
+  const followedCount = (appState.followedMatches || []).length;
+  const liveFollowed = (appState.followedMatches || []).filter(m => m && m.isLive).length;
 
-  const fb24Matches = (appState.footballData?.allMatches || []).filter(isMatchWithin24Hours);
-  const cr24Matches = (appState.cricketData?.allMatches || []).filter(isMatchWithin24Hours);
-
-  const liveFb = appState.footballData?.liveCount || fb24Matches.filter(m => m.isLive).length;
-  const liveCr = appState.cricketData?.liveCount || cr24Matches.filter(m => m.isLive).length;
-  const liveF1 = appState.f1Data?.liveCount || 0;
-  const totalLive = (liveFollowed > 0 ? liveFollowed : 0) + liveFb + liveCr + liveF1;
-
-  elements.badgeFollowed.textContent = String(followedCount);
-  elements.badgeFootball.textContent = String(liveFb > 0 ? liveFb : fb24Matches.length);
-  elements.badgeCricket.textContent = String(liveCr > 0 ? liveCr : cr24Matches.length);
-  
-  if (liveF1 > 0) {
-    elements.badgeF1.textContent = 'LIVE';
-    elements.badgeF1.style.display = 'inline-flex';
-    elements.badgeF1.classList.add('live-alert');
-  } else {
-    elements.badgeF1.textContent = '';
-    elements.badgeF1.style.display = 'none';
-    elements.badgeF1.classList.remove('live-alert');
-  }
-
-  if (liveFollowed > 0) {
-    elements.badgeFollowed.classList.add('live-alert');
-  } else {
-    elements.badgeFollowed.classList.remove('live-alert');
-  }
-
-  elements.badgeFootball.classList.toggle('live-alert', liveFb > 0);
-  elements.badgeCricket.classList.toggle('live-alert', liveCr > 0);
-
-  if (totalLive > 0) {
-    elements.globalLivePill.style.display = 'inline-flex';
-    elements.globalLiveCount.textContent = `${totalLive} LIVE`;
-  } else {
-    elements.globalLivePill.style.display = 'none';
-  }
-
-  // Update extension toolbar icon badge: ONLY if a live event is going on for followed items
   const totalFavsCount = 
     (appState.favorites?.football || []).length + 
     (appState.favorites?.cricket || []).length + 
     (appState.favorites?.f1 || []).length;
 
+  // 1. Following Tab Badge: strictly for followed items
+  if (elements.badgeFollowed) {
+    if (totalFavsCount > 0 && followedCount > 0) {
+      elements.badgeFollowed.textContent = String(followedCount);
+      elements.badgeFollowed.style.display = 'inline-flex';
+      elements.badgeFollowed.classList.toggle('live-alert', liveFollowed > 0);
+    } else {
+      elements.badgeFollowed.textContent = '';
+      elements.badgeFollowed.style.display = 'none';
+      elements.badgeFollowed.classList.remove('live-alert');
+    }
+  }
+
+  // 2. Clear/hide badges for general sport tabs (Football, Cricket, F1)
+  if (elements.badgeFootball) elements.badgeFootball.style.display = 'none';
+  if (elements.badgeCricket) elements.badgeCricket.style.display = 'none';
+  if (elements.badgeF1) elements.badgeF1.style.display = 'none';
+
+  // 3. Global Live Pill in header: strictly for followed live matches only
+  if (elements.globalLivePill) {
+    if (totalFavsCount > 0 && liveFollowed > 0) {
+      elements.globalLivePill.style.display = 'inline-flex';
+      if (elements.globalLiveCount) {
+        elements.globalLiveCount.textContent = `${liveFollowed} LIVE`;
+      }
+    } else {
+      elements.globalLivePill.style.display = 'none';
+    }
+  }
+
+  // 4. Update extension toolbar icon badge: strictly for followed live events
   const activeFollowedLive = totalFavsCount > 0 ? liveFollowed : 0;
   updateToolbarBadge(activeFollowedLive);
 }
@@ -688,7 +684,8 @@ function renderDiscoverView() {
     // Avatar/Logo
     let avatarHtml = '';
     if (item.isLeague) {
-      avatarHtml = `<span class="discover-avatar" style="background: rgba(192, 132, 252, 0.2); color: #c084fc; font-size: 13px;">🏆</span>`;
+      const logoUrl = item.logo || FavoritesService.getLeagueLogo(item.sport, item.name, item.id);
+      avatarHtml = renderLeagueAvatar(logoUrl, item.name, item.sport, 'discover-avatar-wrapper');
     } else if (item.sport === 'f1') {
       if (item.category === 'Constructor' || item.isTeam) {
         avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#8b5cf6'}; color: #fff; font-size: 11px;">🏁</span>`;
@@ -792,9 +789,13 @@ function createNewsCard(article) {
     sourceIcon = '🏎️';
   }
 
-  const thumbnailHtml = article.imageUrl 
-    ? `<img class="news-thumbnail" src="${article.imageUrl}" onerror="this.style.display='none'" alt="">`
-    : '';
+  const imgUrl = article.imageUrl ? article.imageUrl.replace(/"/g, '&quot;') : '';
+  const thumbnailHtml = imgUrl 
+    ? `<div class="news-thumbnail-wrap">
+         <img class="news-thumbnail" src="${imgUrl}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" loading="lazy" alt="">
+         <div class="news-placeholder" style="display:none;"><span class="news-placeholder-icon">${sourceIcon}</span></div>
+       </div>`
+    : `<div class="news-thumbnail-wrap"><div class="news-placeholder"><span class="news-placeholder-icon">${sourceIcon}</span></div></div>`;
 
   card.innerHTML = `
     ${thumbnailHtml}
@@ -829,20 +830,23 @@ function isMatchWithin24Hours(m) {
 
   const now = Date.now();
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-  // 2.5-hour buffer for matches that started slightly before 24h ago but finished within 24h
-  const FINISHED_BUFFER_MS = 2.5 * 60 * 60 * 1000;
+  // 12-hour buffer for matches that started yesterday (accounting for start time + multi-hour match duration)
+  const FINISHED_BUFFER_MS = 12 * 60 * 60 * 1000;
 
   if (m.startTime && m.startTime !== 'null') {
     const startMs = new Date(m.startTime).getTime();
     if (!isNaN(startMs)) {
       if (m.isFinished) {
-        return startMs >= (now - TWENTY_FOUR_HOURS_MS - FINISHED_BUFFER_MS) && startMs <= now;
+        if (startMs >= (now - TWENTY_FOUR_HOURS_MS - FINISHED_BUFFER_MS) && startMs <= now) {
+          return true;
+        }
       }
       if (m.isUpcoming) {
-        return startMs >= now && startMs <= (now + TWENTY_FOUR_HOURS_MS);
+        const diff = startMs - now;
+        if (diff >= -3600000 && diff <= TWENTY_FOUR_HOURS_MS) {
+          return true;
+        }
       }
-      const diff = startMs - now;
-      return diff >= -(TWENTY_FOUR_HOURS_MS + FINISHED_BUFFER_MS) && diff <= TWENTY_FOUR_HOURS_MS;
     }
   }
 
@@ -884,12 +888,18 @@ function renderFootballView() {
 
     if (matches.length === 0) continue;
 
-    // Sort matches inside league: Live first, upcoming by start time, then finished
+    // Sort matches inside league: Live first, finished (most recent first), then upcoming (by start time)
     matches.sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
-      if (a.isUpcoming && b.isFinished) return -1;
-      if (a.isFinished && b.isUpcoming) return 1;
+      if (a.isFinished && b.isUpcoming) return -1;
+      if (a.isUpcoming && b.isFinished) return 1;
+      if (a.isFinished && b.isFinished) {
+        if (a.startTime && b.startTime) {
+          return new Date(b.startTime) - new Date(a.startTime);
+        }
+        return 0;
+      }
       if (a.isUpcoming && b.isUpcoming && a.startTime && b.startTime) {
         return new Date(a.startTime) - new Date(b.startTime);
       }
@@ -902,12 +912,10 @@ function renderFootballView() {
     });
   }
 
-  // Sort leagues: LIVE FIRST, then MOST POPULAR, then LESS POPULAR
+  // Sort leagues: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished
   activeLeagueGroups.sort((a, b) => {
-    const aLive = a.matches.some(m => m.isLive);
-    const bLive = b.matches.some(m => m.isLive);
-    const aRank = (aLive ? 100000 : 0) + FotMobService.getLeaguePopularity(a);
-    const bRank = (bLive ? 100000 : 0) + FotMobService.getLeaguePopularity(b);
+    const aRank = FotMobService.getLeagueSortRank(a);
+    const bRank = FotMobService.getLeagueSortRank(b);
     return bRank - aRank;
   });
 
@@ -920,15 +928,16 @@ function renderFootballView() {
 
     // League Header
     const isLeagueFollowed = FavoritesService.isLeagueFollowed(appState.favorites, 'football', league.leagueName, league.leagueId);
+    const leagueLogoUrl = league.leagueLogo || FavoritesService.getFootballLeagueLogo(league.leagueName, league.leagueId);
     const header = document.createElement('div');
     const hasLive = matches.some(m => m.isLive);
     header.className = `league-group-header ${hasLive ? 'has-live' : ''}`;
     header.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px;">
-        ${league.leagueLogo ? `<img src="${league.leagueLogo}" onerror="this.style.display='none'" style="width: 14px; height: 14px; object-fit: contain;">` : ''}
-        <span>${league.countryCode ? `[${league.countryCode}] ` : ''}${league.leagueName}</span>
+      <div style="display: flex; align-items: center; gap: 7px; overflow: hidden;">
+        ${renderLeagueAvatar(leagueLogoUrl, league.leagueName, 'football', 'header-league-logo')}
+        <span class="league-group-name">${league.countryCode ? `[${league.countryCode}] ` : ''}${league.leagueName}</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
         <span style="font-size: 9px; opacity: 0.85;">${hasLive ? '🔴 LIVE • ' : ''}${matches.length} match${matches.length > 1 ? 'es' : ''}</span>
         <button class="star-btn league-follow-btn ${isLeagueFollowed ? 'followed' : ''}" title="${isLeagueFollowed ? 'Unfollow League' : 'Follow Entire League'}">
           ${isLeagueFollowed ? '★' : '☆'}
@@ -944,7 +953,7 @@ function renderFootballView() {
         name: league.leagueName,
         isLeague: true,
         category: 'League',
-        logo: league.leagueLogo
+        logo: leagueLogoUrl
       });
       appState.favorites = await FavoritesService.getFavorites();
       updateFollowedMatches();
@@ -965,7 +974,7 @@ function renderFootballView() {
 
 /**
  * Render 🏏 Cricket Feed
- * Priority order: LIVE first, then most popular series (Tier 1), then less popular series.
+ * Priority order: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished.
  * STRICT: Only matches that are live, happened within 24h, or will happen within 24h.
  */
 function renderCricketView() {
@@ -990,12 +999,21 @@ function renderCricketView() {
 
     if (matches.length === 0) continue;
 
-    // Sort matches inside series: Live first, upcoming next, finished last
+    // Sort matches inside series: Live first, finished (most recent first), then upcoming
     matches.sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
-      if (a.isUpcoming && b.isFinished) return -1;
-      if (a.isFinished && b.isUpcoming) return 1;
+      if (a.isFinished && b.isUpcoming) return -1;
+      if (a.isUpcoming && b.isFinished) return 1;
+      if (a.isFinished && b.isFinished) {
+        if (a.startTime && b.startTime) {
+          return new Date(b.startTime) - new Date(a.startTime);
+        }
+        return 0;
+      }
+      if (a.isUpcoming && b.isUpcoming && a.startTime && b.startTime) {
+        return new Date(a.startTime) - new Date(b.startTime);
+      }
       return 0;
     });
 
@@ -1005,12 +1023,10 @@ function renderCricketView() {
     });
   }
 
-  // Sort series: LIVE FIRST, then MOST POPULAR, then LESS POPULAR
+  // Sort series: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished
   activeSeriesGroups.sort((a, b) => {
-    const aLive = a.matches.some(m => m.isLive);
-    const bLive = b.matches.some(m => m.isLive);
-    const aRank = (aLive ? 100000 : 0) + CrexService.getSeriesPopularity(a);
-    const bRank = (bLive ? 100000 : 0) + CrexService.getSeriesPopularity(b);
+    const aRank = CrexService.getSeriesSortRank(a);
+    const bRank = CrexService.getSeriesSortRank(b);
     return bRank - aRank;
   });
 
@@ -1023,14 +1039,16 @@ function renderCricketView() {
 
     // Series Header
     const isSeriesFollowed = FavoritesService.isLeagueFollowed(appState.favorites, 'cricket', group.seriesName);
+    const seriesLogoUrl = group.seriesLogo || (group.matches && group.matches[0]?.seriesLogo) || FavoritesService.getTournamentLogo(group.seriesName) || FavoritesService.getCricketLogo(group.seriesName);
     const header = document.createElement('div');
     const hasLive = matches.some(m => m.isLive);
     header.className = `league-group-header ${hasLive ? 'has-live' : ''}`;
     header.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span>🏏 ${group.seriesName}</span>
+      <div style="display: flex; align-items: center; gap: 7px; overflow: hidden;">
+        ${renderLeagueAvatar(seriesLogoUrl, group.seriesName, 'cricket', 'header-league-logo')}
+        <span class="league-group-name">${group.seriesName}</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
         <span style="font-size: 9px; opacity: 0.85;">${hasLive ? '🔴 LIVE • ' : ''}${matches.length} match${matches.length > 1 ? 'es' : ''}</span>
         <button class="star-btn series-follow-btn ${isSeriesFollowed ? 'followed' : ''}" title="${isSeriesFollowed ? 'Unfollow Tournament' : 'Follow Tournament'}">
           ${isSeriesFollowed ? '★' : '☆'}
@@ -1045,7 +1063,8 @@ function renderCricketView() {
         id: group.seriesName.toLowerCase().replace(/\s+/g, '_'),
         name: group.seriesName,
         isLeague: true,
-        category: 'Tournament'
+        category: 'Tournament',
+        logo: seriesLogoUrl
       });
       appState.favorites = await FavoritesService.getFavorites();
       updateFollowedMatches();
@@ -1263,6 +1282,30 @@ function renderTeamAvatar(logoUrl, name = '', shortName = '', sport = 'cricket')
 }
 
 /**
+ * Universal League Avatar & Fallback Badge Generator
+ * Renders verified high-res competition logos across headers, cards, and discover catalog.
+ */
+function renderLeagueAvatar(logoUrl, name = '', sport = 'football', extraClass = '') {
+  const fallbackIcon = sport === 'cricket' ? '🏏' : (sport === 'f1' ? '🏎️' : '⚽');
+
+  if (!logoUrl) {
+    return `
+      <div class="league-logo-wrapper ${extraClass}">
+        <span class="league-avatar-fallback ${sport}" title="${name}">${fallbackIcon}</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="league-logo-wrapper ${extraClass}">
+      <img class="league-logo-img" src="${logoUrl}" alt="${name}" loading="lazy"
+           onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+      <span class="league-avatar-fallback ${sport}" style="display: none;" title="${name}">${fallbackIcon}</span>
+    </div>
+  `;
+}
+
+/**
  * Clean Overs Formatter (avoids duplicate 'ov ov' artifacts)
  */
 function formatCricketOvers(ov) {
@@ -1288,12 +1331,14 @@ function createFootballCard(m) {
 
   const homeScoreText = (m.isLive || m.isFinished) && m.home.score !== null ? m.home.score : '-';
   const awayScoreText = (m.isLive || m.isFinished) && m.away.score !== null ? m.away.score : '-';
+  const leagueLogoUrl = m.leagueLogo || FavoritesService.getFootballLeagueLogo(m.leagueName, m.leagueId);
 
   card.innerHTML = `
     <div class="card-top-bar">
       <div class="sport-badge">
-        <span>⚽ ${m.leagueName || 'Football'}</span>
-        ${m.dateDisplay ? `<span style="font-size: 10px; color: #c084fc; margin-left: 4px; font-weight: 500;">• ${m.dateDisplay}</span>` : ''}
+        ${renderLeagueAvatar(leagueLogoUrl, m.leagueName, 'football', 'card-league-badge')}
+        <span class="card-league-title">${m.leagueName || 'Football'}</span>
+        ${m.dateDisplay ? `<span style="font-size: 10px; color: #c084fc; margin-left: 2px; font-weight: 500;">• ${m.dateDisplay}</span>` : ''}
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
         <span class="match-status-badge ${statusClass}">${m.timeDisplay || 'Upcoming'}</span>
@@ -1324,7 +1369,15 @@ function createFootballCard(m) {
   const starBtn = card.querySelector('.star-btn');
   starBtn.addEventListener('click', async e => {
     e.stopPropagation();
-    await FavoritesService.toggleFollow('football', m.home);
+    if (isHomeFollowed) {
+      await FavoritesService.toggleFollow('football', m.home);
+    } else if (isAwayFollowed) {
+      await FavoritesService.toggleFollow('football', m.away);
+    } else if (isLeagueFollowed) {
+      await FavoritesService.toggleFollow('football', { name: m.leagueName, id: m.leagueId, isLeague: true, category: 'League' });
+    } else {
+      await FavoritesService.toggleFollow('football', m.home);
+    }
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
     renderAllViews();
@@ -1498,10 +1551,13 @@ function createCricketCard(m) {
     `;
   }
 
+  const seriesLogoUrl = m.seriesLogo || FavoritesService.getTournamentLogo(m.seriesName) || FavoritesService.getCricketLogo(m.seriesName);
+
   card.innerHTML = `
     <div class="card-top-bar">
       <div class="sport-badge">
-        <span>🏏 [${m.format}] ${m.matchTitle}</span>
+        ${renderLeagueAvatar(seriesLogoUrl, m.seriesName, 'cricket', 'card-league-badge')}
+        <span class="card-league-title">[${m.format}] ${m.matchTitle}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
         <span class="match-status-badge ${statusClass}">${cricketTimeDisplay}</span>
@@ -1544,7 +1600,15 @@ function createCricketCard(m) {
   const starBtn = card.querySelector('.star-btn');
   starBtn.addEventListener('click', async e => {
     e.stopPropagation();
-    await FavoritesService.toggleFollow('cricket', m.team1);
+    if (isT1Followed) {
+      await FavoritesService.toggleFollow('cricket', m.team1);
+    } else if (isT2Followed) {
+      await FavoritesService.toggleFollow('cricket', m.team2);
+    } else if (isSeriesFollowed) {
+      await FavoritesService.toggleFollow('cricket', { name: m.seriesName, isLeague: true, category: 'Tournament' });
+    } else {
+      await FavoritesService.toggleFollow('cricket', m.team1);
+    }
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
     renderAllViews();
@@ -1578,9 +1642,9 @@ function createFollowedF1Card(item) {
     </div>
     <div class="f1-leaderboard-list">
       ${item.followedDrivers.map(d => `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: rgba(255,255,255,0.03); border-radius: 4px; border-left: 3px solid ${d.teamColor};">
-          <span style="font-weight: 600; color: #fef08a;">P${d.position} • ${d.name} (${d.team})</span>
-          <span style="font-family: monospace; font-weight: 700; color: #ffffff;">${d.gap}</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: rgba(255,255,255,0.025); border-radius: 4px; border-left: 3px solid ${d.teamColor}; margin-bottom: 3px;">
+          <span style="font-weight: 600; color: #ffffff; font-size: 11.5px;">P${d.position} • ${d.name} <span style="color: var(--text-dim); font-size: 9.5px;">(${d.team})</span></span>
+          <span style="font-family: monospace; font-weight: 700; color: #ffffff; font-size: 11px;">${d.gap}</span>
         </div>
       `).join('')}
     </div>
@@ -1662,12 +1726,20 @@ function createChip(sport, item) {
   const chip = document.createElement('span');
   chip.className = `team-chip ${item.isLeague ? 'league-chip' : ''}`;
   let tag = '';
+  let logoUrl = item.logo || '';
   if (item.isLeague) {
-    tag = sport === 'football' ? ' 🏆 [League]' : ' 🏆 [Tournament]';
-  } else if (sport === 'f1' && (item.isTeam || item.category === 'Constructor')) {
-    tag = ' [Team]';
+    tag = sport === 'football' ? ' [League]' : ' [Tournament]';
+    if (!logoUrl) {
+      logoUrl = FavoritesService.getLeagueLogo(sport, item.name, item.id);
+    }
+  } else if (!logoUrl) {
+    if (sport === 'cricket') logoUrl = FavoritesService.getCricketLogo(item.name, item.shortName);
   }
+
+  const logoHtml = logoUrl ? `<img src="${logoUrl}" class="chip-logo" onerror="this.style.display='none'">` : '';
+
   chip.innerHTML = `
+    ${logoHtml}
     <span>${item.name || item.shortName}${tag}</span>
     <button class="chip-remove-btn" title="Remove">&times;</button>
   `;
@@ -1682,7 +1754,23 @@ function createChip(sport, item) {
 }
 
 /**
+ * Triggers smooth spinning animation on the reload button arrows
+ */
+function triggerRefreshAnimation(isRefreshing) {
+  if (elements.refreshBtn) {
+    if (isRefreshing) {
+      elements.refreshBtn.classList.remove('rotating');
+      void elements.refreshBtn.offsetWidth; // Force reflow so 2-spin animation reliably plays from 0deg
+      elements.refreshBtn.classList.add('rotating');
+    } else {
+      elements.refreshBtn.classList.remove('rotating');
+    }
+  }
+}
+
+/**
  * Auto-refresh countdown timer
+ * Only rotates the refresh arrows when refreshing without changing timer text or colors.
  */
 function startAutoRefreshCountdown() {
   if (appState.countdownTimer) clearInterval(appState.countdownTimer);
@@ -1693,8 +1781,14 @@ function startAutoRefreshCountdown() {
   appState.countdownTimer = setInterval(async () => {
     appState.refreshSecondsLeft--;
     if (appState.refreshSecondsLeft <= 0) {
+      triggerRefreshAnimation(true);
       resetRefreshTimer();
-      await fetchLiveScores(false);
+      const fetchTask = fetchLiveScores(false);
+      await Promise.all([
+        fetchTask,
+        new Promise(r => setTimeout(r, 1700))
+      ]);
+      triggerRefreshAnimation(false);
     } else {
       updateTimerBadge();
     }
@@ -1707,5 +1801,7 @@ function resetRefreshTimer() {
 }
 
 function updateTimerBadge() {
-  elements.refreshTimer.textContent = `${appState.refreshSecondsLeft}s`;
+  if (elements.refreshTimer) {
+    elements.refreshTimer.textContent = `${appState.refreshSecondsLeft}s`;
+  }
 }

@@ -12,17 +12,9 @@
     <header class="app-header">
       <div class="brand-row">
         <div class="brand">
-          <div class="logo-icon tri-emblem" title="ScoreQuick: Football (Green), Cricket (Blue) & F1 (Red)">
-            <svg viewBox="0 0 32 32" width="22" height="22" fill="none">
-              <circle cx="16" cy="16" r="15" fill="#131722" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
-              <!-- Green Arc (Football) -->
-              <path d="M 6 16 A 10 10 0 0 1 16 6" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
-              <!-- Blue Arc (Cricket) -->
-              <path d="M 16 6 A 10 10 0 0 1 26 16" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round"/>
-              <!-- Red Arc (F1) -->
-              <path d="M 26 16 A 10 10 0 0 1 6 16" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>
-              <!-- Center Lightning Flash -->
-              <polygon points="17,9 12,16 16,16 15,23 20,15 16,15" fill="#f8fafc"/>
+          <div class="logo-icon thunderbolt-emblem" title="ScoreQuick Live Scores">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+              <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#8b5cf6" stroke="#c084fc" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
             </svg>
           </div>
           <span class="brand-name">ScoreQuick</span>
@@ -32,7 +24,7 @@
           </span>
         </div>
         <div class="header-actions">
-          <span class="countdown-tag" id="refresh-timer" title="Time until next auto-sync">30s</span>
+          <span class="countdown-tag" id="refresh-timer" title="Time until next auto-sync">10s</span>
           <button class="icon-btn" id="manual-refresh-btn" title="Refresh Live Scores">
             <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
               <path d="M23 4v6h-6M1 20v-6h6"></path>
@@ -52,35 +44,32 @@
         <button id="search-clear" class="clear-btn" style="display: none;">&times;</button>
       </div>
 
-      <!-- Navigation Tabs -->
+      <!-- Navigation Tabs (Order: discover, news, following, cricket, football, f1, settings) -->
       <nav class="nav-tabs">
-        <button class="tab-btn" data-tab="discover">
+        <button class="tab-btn active" data-tab="discover">
           <span class="tab-icon">🔍</span>
           <span>Discover</span>
-        </button>
-        <button class="tab-btn active" data-tab="followed">
-          <span class="tab-icon">⭐</span>
-          <span>Following</span>
-          <span class="tab-badge" id="badge-followed">0</span>
         </button>
         <button class="tab-btn" data-tab="news">
           <span class="tab-icon">📰</span>
           <span>News</span>
         </button>
+        <button class="tab-btn" data-tab="followed">
+          <span class="tab-icon">⭐</span>
+          <span>Following</span>
+          <span class="tab-badge" id="badge-followed" style="display: none;">0</span>
+        </button>
         <button class="tab-btn" data-tab="cricket">
           <span class="tab-icon">🏏</span>
           <span>Cricket</span>
-          <span class="tab-badge" id="badge-cricket">0</span>
         </button>
         <button class="tab-btn" data-tab="football">
           <span class="tab-icon">⚽</span>
           <span>Football</span>
-          <span class="tab-badge" id="badge-football">0</span>
         </button>
         <button class="tab-btn" data-tab="f1">
           <span class="tab-icon">🏎️</span>
           <span>F1</span>
-          <span class="tab-badge" id="badge-f1" style="display: none;"></span>
         </button>
         <button class="tab-btn icon-tab-btn" data-tab="settings" title="Settings &amp; Sync">
           <span class="tab-icon">⚙️</span>
@@ -96,20 +85,8 @@
         <span>Syncing live scores...</span>
       </div>
 
-      <!-- Tab 1: ⭐ Followed Teams Feed (STRICTLY Followed Teams Only) -->
-      <section id="tab-followed" class="tab-view active">
-        <div id="followed-list" class="matches-container"></div>
-
-        <div id="followed-empty" class="empty-state" style="display: none;">
-          <div class="empty-icon">⭐</div>
-          <h3>Your Following Feed is Clean</h3>
-          <p>You haven't followed any teams yet. Discover clubs and drivers to see their live scores and alerts here!</p>
-          <button class="discover-nav-btn" id="go-to-discover-btn">🔍 Discover Teams to Follow</button>
-        </div>
-      </section>
-
-      <!-- Tab 2: 🔍 Discover Tab (Choose Sport, Search & Follow Teams) -->
-      <section id="tab-discover" class="tab-view">
+      <!-- Tab 1: 🔍 Discover Tab (Choose Sport, Search & Follow Teams) -->
+      <section id="tab-discover" class="tab-view active">
         <div class="tab-subbar">
           <div class="filter-pills">
             <button class="pill active" data-disc-sport="all">All</button>
@@ -118,7 +95,7 @@
             <button class="pill" data-disc-sport="cricket">🏏 Cricket</button>
             <button class="pill" data-disc-sport="f1">🏎️ F1</button>
           </div>
-          <span class="source-tag" id="discover-count-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">0 Items</span>
+          <span class="source-tag count-tag-purple" id="discover-count-tag">0 Items</span>
         </div>
 
         <div class="discover-search-box">
@@ -128,7 +105,7 @@
         <div id="discover-list" class="discover-grid"></div>
       </section>
 
-      <!-- Tab 3: 📰 Multi-Sport News Feed (FotMob, CREX, Official F1) -->
+      <!-- Tab 2: 📰 Multi-Sport News Feed (FotMob, ESPNcricinfo, CREX, Official F1) -->
       <section id="tab-news" class="tab-view">
         <div class="tab-subbar">
           <div class="filter-pills" id="news-filter-pills">
@@ -138,7 +115,7 @@
             <button class="pill" data-news-filter="cricket">🏏 Cricket</button>
             <button class="pill" data-news-filter="f1">🏎️ F1</button>
           </div>
-          <span class="source-tag" id="news-count-tag" style="background: rgba(168, 85, 247, 0.18); color: #c084fc;">0 Articles</span>
+          <span class="source-tag count-tag-purple" id="news-count-tag">0 Articles</span>
         </div>
 
         <div class="discover-search-box" style="margin-bottom: 8px;">
@@ -155,22 +132,19 @@
         </div>
       </section>
 
-      <!-- Tab 4: ⚽ Football (FotMob) Feed -->
-      <section id="tab-football" class="tab-view">
-        <div class="tab-subbar">
-          <span class="source-tag fotmob-tag">Powered by FotMob</span>
-          <div class="filter-pills">
-            <button class="pill active" data-fb-filter="all">All</button>
-            <button class="pill" data-fb-filter="live">Live Only</button>
-          </div>
-        </div>
-        <div id="football-list" class="matches-container"></div>
-        <div id="football-empty" class="empty-state" style="display: none;">
-          <p>No football matches found.</p>
+      <!-- Tab 3: ⭐ Followed Teams Feed (STRICTLY Followed Teams Only) -->
+      <section id="tab-followed" class="tab-view">
+        <div id="followed-list" class="matches-container"></div>
+
+        <div id="followed-empty" class="empty-state" style="display: none;">
+          <div class="empty-icon">⭐</div>
+          <h3>Your Following Feed is Clean</h3>
+          <p>You haven't followed any teams yet. Discover clubs and drivers to see their live scores and alerts here!</p>
+          <button class="discover-nav-btn" id="go-to-discover-btn">🔍 Discover Teams to Follow</button>
         </div>
       </section>
 
-      <!-- Tab 4: 🏏 Cricket (CREX) Feed -->
+      <!-- Tab 4: 🏏 Cricket (ESPNcricinfo & CREX) Feed -->
       <section id="tab-cricket" class="tab-view">
         <div class="tab-subbar">
           <span class="source-tag cricinfo-tag">Powered by ESPNcricinfo</span>
@@ -185,7 +159,22 @@
         </div>
       </section>
 
-      <!-- Tab 5: 🏎️ Formula 1 (Official F1) Feed -->
+      <!-- Tab 5: ⚽ Football (FotMob) Feed -->
+      <section id="tab-football" class="tab-view">
+        <div class="tab-subbar">
+          <span class="source-tag fotmob-tag">Powered by FotMob</span>
+          <div class="filter-pills">
+            <button class="pill active" data-fb-filter="all">All</button>
+            <button class="pill" data-fb-filter="live">Live Only</button>
+          </div>
+        </div>
+        <div id="football-list" class="matches-container"></div>
+        <div id="football-empty" class="empty-state" style="display: none;">
+          <p>No football matches found.</p>
+        </div>
+      </section>
+
+      <!-- Tab 6: 🏎️ Formula 1 (Official F1) Feed -->
       <section id="tab-f1" class="tab-view">
         <div class="tab-subbar">
           <span class="source-tag f1-tag">Official Formula 1 Timing &amp; Schedule</span>
@@ -210,10 +199,10 @@
           <div class="setting-row">
             <label for="poll-interval-select">Refresh Interval</label>
             <select id="poll-interval-select" class="select-input">
-              <option value="10">10 Seconds (Fastest)</option>
+              <option value="10" selected>10 Seconds (Fastest • Default)</option>
               <option value="15">15 Seconds</option>
               <option value="20">20 Seconds</option>
-              <option value="30" selected>30 Seconds (Recommended)</option>
+              <option value="30">30 Seconds (Recommended)</option>
               <option value="60">1 Minute</option>
             </select>
           </div>
@@ -266,7 +255,7 @@
     <!-- Footer status -->
     <footer class="app-footer">
       <span id="last-updated-text">Connecting to live feeds...</span>
-      <span style="font-size: 9px; opacity: 0.6;">ScoreQuick v1.3</span>
+      <span style="font-size: 9px; opacity: 0.6;">ScoreQuick v1.4</span>
     </footer>
   </div>
 

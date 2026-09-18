@@ -87,10 +87,10 @@ export class NewsService {
           id: `fb_news_${item.id || Math.random()}`,
           sport: 'football',
           source: item.sourceStr || 'FotMob',
-          title: item.title || 'Football News',
-          lead: item.lead || '',
+          title: decodeHtmlEntities(item.title || 'Football News'),
+          lead: decodeHtmlEntities(item.lead || ''),
           url: articleUrl,
-          imageUrl: item.imageUrl || '',
+          imageUrl: cleanImageUrl(item.imageUrl),
           timestamp: timeMs,
           timeDisplay: this.formatTimeAgo(timeMs)
         };
@@ -128,7 +128,7 @@ export class NewsService {
 
       // Sort by newest first
       combined.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      return combined.slice(0, 25);
+      return combined.slice(0, 30);
     } catch (err) {
       console.warn('Cricket news aggregator error:', err.message);
       return [];
@@ -136,9 +136,70 @@ export class NewsService {
   }
 
   /**
-   * 2a. 🏏 Official ESPNcricinfo News JSON API (High Reliability & Images)
+   * 2a. 🏏 Official ESPNcricinfo News (RSS Feed with working HD Cover Images)
    */
   static async fetchEspnCricketNews() {
+    try {
+      const res = await fetch('https://www.espncricinfo.com/rss/content/story/feeds/0.xml');
+      if (!res.ok) {
+        return this.fetchEspnCricketNewsFallback();
+      }
+
+      const xml = await res.text();
+      const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+      const articles = [];
+      let match;
+      let count = 0;
+
+      while ((match = itemRegex.exec(xml)) !== null && count < 25) {
+        const chunk = match[1];
+        const rawTitle = (chunk.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || '';
+        const rawCover = (chunk.match(/<coverImages>([\s\S]*?)<\/coverImages>/i) || [])[1] || '';
+        const rawMedia = (chunk.match(/<media:content[^>]+url=["']([^"']+)["']/i) || [])[1] || '';
+        const rawEnclosure = (chunk.match(/<enclosure[^>]+url=["']([^"']+)["']/i) || [])[1] || '';
+        const rawDesc = (chunk.match(/<description>([\s\S]*?)<\/description>/i) || [])[1] || '';
+        const rawLink = (chunk.match(/<link>([\s\S]*?)<\/link>/i) || chunk.match(/<url>([\s\S]*?)<\/url>/i) || [])[1] || '';
+        const rawGuid = (chunk.match(/<guid>([\s\S]*?)<\/guid>/i) || [])[1] || '';
+        const rawPubDate = (chunk.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1] || '';
+
+        const title = decodeHtmlEntities(rawTitle.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1'));
+        const lead = decodeHtmlEntities(rawDesc.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ''));
+        const link = (rawLink || rawGuid).replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+        const rawImg = (rawCover || rawMedia || rawEnclosure || '').replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+        const img = cleanImageUrl(rawImg);
+        const timeMs = rawPubDate ? new Date(rawPubDate).getTime() : Date.now() - (count * 3600000);
+
+        if (title) {
+          articles.push({
+            id: `cr_espn_news_${count}_${timeMs}`,
+            sport: 'cricket',
+            source: 'ESPNcricinfo',
+            title: title,
+            lead: lead,
+            url: link || 'https://www.espncricinfo.com',
+            imageUrl: img,
+            timestamp: timeMs,
+            timeDisplay: this.formatTimeAgo(timeMs)
+          });
+          count++;
+        }
+      }
+
+      if (articles.length === 0) {
+        return this.fetchEspnCricketNewsFallback();
+      }
+
+      return articles;
+    } catch (err) {
+      console.warn('ESPN Cricinfo RSS news fetch error, falling back:', err.message);
+      return this.fetchEspnCricketNewsFallback();
+    }
+  }
+
+  /**
+   * 2a-fallback. ESPNcricinfo JSON API Fallback
+   */
+  static async fetchEspnCricketNewsFallback() {
     try {
       const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/cricket/8048/news');
       if (!res.ok) return [];
@@ -146,17 +207,17 @@ export class NewsService {
       const data = await res.json();
       const items = Array.isArray(data.articles) ? data.articles : [];
 
-      return items.slice(0, 25).map(item => {
+      return items.slice(0, 20).map(item => {
         const timeMs = item.published ? new Date(item.published).getTime() : Date.now();
         const articleUrl = item.links?.web?.href || 'https://www.espncricinfo.com';
-        const img = item.images?.[0]?.url || '';
+        const img = cleanImageUrl(item.images?.[0]?.url);
 
         return {
-          id: `cr_espn_news_${item.id || Math.random()}`,
+          id: `cr_espn_fallback_${item.id || Math.random()}`,
           sport: 'cricket',
           source: 'ESPNcricinfo',
-          title: item.headline || 'Cricket News',
-          lead: item.description || '',
+          title: decodeHtmlEntities(item.headline || 'Cricket News'),
+          lead: decodeHtmlEntities(item.description || ''),
           url: articleUrl,
           imageUrl: img,
           timestamp: timeMs,
@@ -164,13 +225,13 @@ export class NewsService {
         };
       });
     } catch (err) {
-      console.warn('ESPN Cricinfo news fetch error:', err.message);
+      console.warn('ESPN Cricinfo fallback error:', err.message);
       return [];
     }
   }
 
   /**
-   * 2b. 🏏 CREX Cricket News (HTML SSR Scraper)
+   * 2b. 🏏 CREX Cricket News (SSR Scraper with Sanitized High-Res Image URLs)
    */
   static async fetchCrexNews() {
     try {
@@ -204,19 +265,21 @@ export class NewsService {
           ? (item.newsUrl.startsWith('http') ? item.newsUrl : `https://crex.live${item.newsUrl}`)
           : 'https://crex.live/news';
 
+        const img = cleanImageUrl(item.img);
+
         articles.push({
           id: `cr_news_${item.id || Math.random()}`,
           sport: 'cricket',
           source: 'CREX',
-          title: item.title,
-          lead: item.author ? `Reporting by ${item.author}` : (item.desc || ''),
+          title: decodeHtmlEntities(item.title),
+          lead: decodeHtmlEntities(item.author ? `Reporting by ${item.author}` : (item.desc || '')),
           url: articleUrl,
-          imageUrl: item.img || '',
+          imageUrl: img,
           timestamp: timeMs,
           timeDisplay: this.formatTimeAgo(timeMs)
         });
 
-        if (articles.length >= 15) break;
+        if (articles.length >= 20) break;
       }
 
       return articles;
@@ -248,9 +311,9 @@ export class NewsService {
           const rawDesc = (chunk.match(/<description>([\s\S]*?)<\/description>/i) || [])[1] || '';
           const rawPubDate = (chunk.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1] || '';
 
-          const title = rawTitle.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+          const title = decodeHtmlEntities(rawTitle.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1'));
           const link = rawLink.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-          const lead = rawDesc.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]+>/g, '').trim();
+          const lead = decodeHtmlEntities(rawDesc.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ''));
           const timeMs = rawPubDate ? new Date(rawPubDate).getTime() : Date.now() - (count * 3600000);
 
           if (title && link) {
@@ -284,10 +347,10 @@ export class NewsService {
             id: `f1_news_espn_${item.id || Math.random()}`,
             sport: 'f1',
             source: 'Formula 1',
-            title: item.headline || 'Formula 1 Update',
-            lead: item.description || '',
+            title: decodeHtmlEntities(item.headline || 'Formula 1 Update'),
+            lead: decodeHtmlEntities(item.description || ''),
             url: item.links?.web?.href || 'https://www.formula1.com',
-            imageUrl: item.images?.[0]?.url || 'https://www.formula1.com/etc/designs/fom-website/icon192x192.png',
+            imageUrl: cleanImageUrl(item.images?.[0]?.url) || 'https://www.formula1.com/etc/designs/fom-website/icon192x192.png',
             timestamp: timeMs,
             timeDisplay: this.formatTimeAgo(timeMs)
           });
@@ -397,3 +460,45 @@ export class NewsService {
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+export function decodeHtmlEntities(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&q;/g, '"')
+    .replace(/&a;/g, '&')
+    .replace(/&s;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
+export function cleanImageUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  let url = rawUrl.trim();
+  if (!url) return '';
+
+  // Strip CDATA if present
+  url = url.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+
+  // Upgrade http to https
+  if (url.startsWith('http://')) {
+    url = url.replace(/^http:\/\//i, 'https://');
+  }
+
+  // Handle URL encoding for filenames with spaces, parentheses, etc. (especially Google Storage / CREX images)
+  try {
+    url = encodeURI(decodeURI(url));
+  } catch (_) {
+    url = encodeURI(url);
+  }
+
+  return url;
+}
+

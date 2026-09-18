@@ -13,11 +13,30 @@ import { NotificationService } from './services/notifications.js';
 const ALARM_NAME = 'scorequick_poll';
 const DEFAULT_POLL_INTERVAL_MINUTES = 1;
 
+// Immediately clear any old/cached badge on service worker initialization
+try {
+  if (typeof chrome !== 'undefined' && chrome.action && chrome.action.setBadgeText) {
+    chrome.action.setBadgeText({ text: '' });
+  }
+} catch (_) {}
+
 // Initialize on extension installation or browser startup
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('[ScoreQuick] Extension installed/updated.');
+  try {
+    if (chrome.action && chrome.action.setBadgeText) {
+      chrome.action.setBadgeText({ text: '' });
+    }
+  } catch (_) {}
   if (typeof chrome !== 'undefined' && chrome.storage?.session) {
     chrome.storage.session.remove('scorequick_tab_state').catch(() => {});
+  }
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    chrome.storage.local.get(['scorequick_poll_interval'], res => {
+      if (!res || !res.scorequick_poll_interval) {
+        chrome.storage.local.set({ scorequick_poll_interval: 10 });
+      }
+    });
   }
   await setupAlarm();
   await refreshScores(true);
@@ -25,6 +44,11 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 chrome.runtime.onStartup.addListener(async () => {
   console.log('[ScoreQuick] Browser started.');
+  try {
+    if (chrome.action && chrome.action.setBadgeText) {
+      chrome.action.setBadgeText({ text: '' });
+    }
+  } catch (_) {}
   if (typeof chrome !== 'undefined' && chrome.storage?.session) {
     chrome.storage.session.remove('scorequick_tab_state').catch(() => {});
   }

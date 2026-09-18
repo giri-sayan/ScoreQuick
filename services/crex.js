@@ -47,7 +47,7 @@ export class CrexService {
     try {
       const [crexResult, espnResult] = await Promise.allSettled([
         this.fetchCrexState(),
-        this.fetchEspnScorepanel()
+        this.fetchEspnMultiDay()
       ]);
 
       const crexMatches = crexResult.status === 'fulfilled' ? crexResult.value : [];
@@ -80,37 +80,71 @@ export class CrexService {
       }
       const liveMatches = allMatches.filter(m => m.isLive);
 
-      // Group by series
+      // Group by normalized series name
       const seriesGroupsMap = new Map();
       for (const m of allMatches) {
-        const sName = m.seriesName || 'Cricket Series';
-        if (!seriesGroupsMap.has(sName)) {
-          seriesGroupsMap.set(sName, []);
+        const rawName = decodeHtmlEntities(m.seriesName || 'Cricket Series');
+        const normKey = rawName.toLowerCase()
+          .replace(/\b20\d\d(\s*[\/\-]\s*\d{2,4})?\b/g, '')
+          .replace(/[^a-z0-9]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        const groupKey = normKey || rawName.toLowerCase();
+        if (!seriesGroupsMap.has(groupKey)) {
+          seriesGroupsMap.set(groupKey, {
+            seriesName: rawName,
+            matches: []
+          });
         }
-        seriesGroupsMap.get(sName).push(m);
+        seriesGroupsMap.get(groupKey).matches.push(m);
       }
 
       const seriesGroups = [];
-      for (const [name, sMatches] of seriesGroupsMap.entries()) {
+      for (const [key, groupData] of seriesGroupsMap.entries()) {
+        const sMatches = groupData.matches;
+        const sName = groupData.seriesName;
         sMatches.sort((a, b) => {
           if (a.isLive && !b.isLive) return -1;
           if (!a.isLive && b.isLive) return 1;
-          if (a.isUpcoming && b.isFinished) return -1;
-          if (a.isFinished && b.isUpcoming) return 1;
+          if (a.isFinished && b.isUpcoming) return -1;
+          if (a.isUpcoming && b.isFinished) return 1;
+          if (a.isFinished && b.isFinished) {
+            if (a.startTime && b.startTime) {
+              return new Date(b.startTime) - new Date(a.startTime);
+            }
+            return 0;
+          }
+          if (a.isUpcoming && b.isUpcoming && a.startTime && b.startTime) {
+            return new Date(a.startTime) - new Date(b.startTime);
+          }
           return 0;
         });
+
+        // Find best logo across matches in this series or dedicated tournament map
+        const sLogo = (sMatches.find(m => m.seriesLogo && !m.seriesLogo.includes('8048.png'))?.seriesLogo) ||
+                      FavoritesService.getTournamentLogo(sName) ||
+                      (sMatches.find(m => m.seriesLogo)?.seriesLogo) ||
+                      'https://a.espncdn.com/i/leaguelogos/cricket/500/8048.png';
+
+        // Normalize seriesLogo on all matches in this series
+        sMatches.forEach(m => {
+          if (!m.seriesLogo || m.seriesLogo.includes('8048.png')) {
+            m.seriesLogo = sLogo;
+          }
+        });
+
         seriesGroups.push({
-          seriesName: name,
+          seriesName: sName,
+          seriesLogo: sLogo,
           matches: sMatches
         });
       }
 
-      // Sort series groups: LIVE first, then most popular series, then less popular
+      // Sort series groups: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished
       seriesGroups.sort((a, b) => {
-        const aLive = a.matches.some(m => m.isLive);
-        const bLive = b.matches.some(m => m.isLive);
-        const aRank = (aLive ? 100000 : 0) + this.getSeriesPopularity(a);
-        const bRank = (bLive ? 100000 : 0) + this.getSeriesPopularity(b);
+        const aRank = this.getSeriesSortRank(a);
+        const bRank = this.getSeriesSortRank(b);
         return bRank - aRank;
       });
 
@@ -125,6 +159,33 @@ export class CrexService {
       console.error('Error in CrexService.fetchMatches:', err);
       return { sport: 'cricket', allMatches: [], liveMatches: [], series: [], liveCount: 0 };
     }
+  }
+
+  /**
+   * Comprehensive Cricket Series Sort Rank:
+   * 1. Popular Series / Tournaments (ICC, IPL, Bilaterals, Tier 1 T20 leagues: popularity >= 750):
+   *    - Live popular matches first (20000 + popularity)
+   *    - Finished ("maybe already over") / Upcoming popular matches next (10000 + popularity)
+   * 2. Other Non-Tier-1 Competitions with LIVE matches (5000 + popularity)
+   * 3. Other Non-Tier-1 Competitions with UPCOMING matches (1000 + popularity)
+   * 4. Other Non-Tier-1 Competitions with FINISHED matches (popularity)
+   */
+  static getSeriesSortRank(series) {
+    const popularity = this.getSeriesPopularity(series);
+    const matches = series.matches || [];
+    const hasLive = matches.some(m => m.isLive);
+    const hasUpcoming = matches.some(m => m.isUpcoming);
+
+    const isPopular = popularity >= 750;
+
+    if (isPopular) {
+      if (hasLive) return 20000 + popularity;
+      return 10000 + popularity;
+    }
+
+    if (hasLive) return 5000 + popularity;
+    if (hasUpcoming) return 1000 + popularity;
+    return popularity;
   }
 
   /**
@@ -490,14 +551,16 @@ export class CrexService {
         }
 
         const crexUrl = crexLinkMap.get(matchKey) || `https://crex.live/scoreboard/${matchKey}`;
-        const sName = m.sfullname || m.sname || sInfo.n || sInfo.sn || 'Cricket Tournament';
+        const rawSName = m.sfullname || m.sname || sInfo.n || sInfo.sn || 'Cricket Tournament';
+        const sName = decodeHtmlEntities(rawSName);
+        const sVectorLogo = sInfo.f_key ? `https://cricketvectors.akamaized.net/Series/${sInfo.f_key}.png` : '';
 
         matches.push({
           id: `cr_crex_${matchKey}`,
           rawId: matchKey,
           sport: 'cricket',
           seriesName: sName,
-          seriesLogo: FavoritesService.getCricketLogo(sName) || '',
+          seriesLogo: sVectorLogo || FavoritesService.getTournamentLogo(sName) || FavoritesService.getCricketLogo(sName) || '',
           format: m.fo || m.format || 'Match',
           matchTitle: `${team1Short} vs ${team2Short}`,
           venue: m.vname || '',
@@ -536,9 +599,44 @@ export class CrexService {
     }
   }
 
-  static async fetchEspnScorepanel() {
+  /**
+   * Fetches matches across a 4-day cricket window:
+   * yesterday (-24h finished), today (live/recent), tomorrow (+24h), and day-after (+48h).
+   */
+  static async fetchEspnMultiDay() {
+    const fmt = dt => dt.toISOString().slice(0, 10).replace(/-/g, '');
+    const now = new Date();
+    const dates = [
+      fmt(new Date(now.getTime() - 86400000)), // yesterday
+      fmt(now),                                // today
+      fmt(new Date(now.getTime() + 86400000)), // tomorrow
+      fmt(new Date(now.getTime() + 172800000)) // day after (+48h)
+    ];
+
+    const settled = await Promise.allSettled(
+      dates.map(d => this.fetchEspnScorepanel(d))
+    );
+
+    const allEspnMatches = [];
+    const seenIds = new Set();
+    for (const res of settled) {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        for (const m of res.value) {
+          if (!seenIds.has(m.id)) {
+            seenIds.add(m.id);
+            allEspnMatches.push(m);
+          }
+        }
+      }
+    }
+    return allEspnMatches;
+  }
+
+  static async fetchEspnScorepanel(dateStr = null) {
     try {
-      const url = 'https://site.web.api.espn.com/apis/site/v2/sports/cricket/scorepanel';
+      const url = dateStr
+        ? `https://site.web.api.espn.com/apis/site/v2/sports/cricket/scorepanel?dates=${dateStr}`
+        : 'https://site.web.api.espn.com/apis/site/v2/sports/cricket/scorepanel';
       const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) return [];
 
@@ -547,7 +645,8 @@ export class CrexService {
 
       for (const group of data.scores || []) {
         const leagueId = group.leagues?.[0]?.id || '';
-        const leagueName = group.leagues?.[0]?.name || 'Cricket Tournament';
+        const rawLeagueName = group.leagues?.[0]?.name || 'Cricket Tournament';
+        const leagueName = decodeHtmlEntities(rawLeagueName);
 
         for (const ev of group.events || []) {
           const comp = ev.competitions?.[0];
@@ -637,7 +736,7 @@ export class CrexService {
             leagueId: leagueId,
             sport: 'cricket',
             seriesName: leagueName,
-            seriesLogo: FavoritesService.getCricketLogo(leagueName) || '',
+            seriesLogo: FavoritesService.getTournamentLogo(leagueName) || FavoritesService.getCricketLogo(leagueName) || '',
             format: comp.format?.type || 'Match',
             matchTitle: ev.name || `${t1Abbr} vs ${t2Abbr}`,
             venue: comp.venue?.fullName || '',
@@ -712,3 +811,22 @@ export class CrexService {
     });
   }
 }
+
+function decodeHtmlEntities(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&q;/g, '"')
+    .replace(/&a;/g, '&')
+    .replace(/&s;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+

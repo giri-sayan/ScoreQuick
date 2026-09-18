@@ -3,6 +3,8 @@
  * Fetches real-time scores, live match minutes, and league tables from FotMob.
  */
 
+import { FavoritesService } from './favorites.js';
+
 export class FotMobService {
   /**
    * Fetches matches directly from FotMob across a 4-day window:
@@ -105,12 +107,13 @@ export class FotMobService {
       if (!league.matches || league.matches.length === 0) continue;
 
       const leagueId = league.id || league.primaryId;
+      const leagueLogo = (leagueId ? `https://images.fotmob.com/image_resources/logo/leaguelogo/${leagueId}.png` : '') || FavoritesService.getFootballLeagueLogo(league.name, leagueId);
       const group = {
         leagueId: leagueId,
         leagueName: league.name,
         countryCode: league.ccode || '',
         parentLeagueName: league.parentLeagueName || '',
-        leagueLogo: leagueId ? `https://images.fotmob.com/image_resources/logo/leaguelogo/${leagueId}.png` : '',
+        leagueLogo: leagueLogo,
         matches: []
       };
 
@@ -223,12 +226,18 @@ export class FotMobService {
       }
 
       if (group.matches.length > 0) {
-        // Sort matches in each league: Live first, then upcoming (by start time), then finished
+        // Sort matches in each league: Live first, then finished (most recent first), then upcoming (by start time)
         group.matches.sort((a, b) => {
           if (a.isLive && !b.isLive) return -1;
           if (!a.isLive && b.isLive) return 1;
-          if (a.isUpcoming && b.isFinished) return -1;
-          if (a.isFinished && b.isUpcoming) return 1;
+          if (a.isFinished && b.isUpcoming) return -1;
+          if (a.isUpcoming && b.isFinished) return 1;
+          if (a.isFinished && b.isFinished) {
+            if (a.startTime && b.startTime) {
+              return new Date(b.startTime) - new Date(a.startTime);
+            }
+            return 0;
+          }
           if (a.isUpcoming && b.isUpcoming && a.startTime && b.startTime) {
             return new Date(a.startTime) - new Date(b.startTime);
           }
@@ -238,12 +247,10 @@ export class FotMobService {
       }
     }
 
-    // Sort league groups: LIVE first, then most popular leagues, then less popular
+    // Sort league groups: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished
     leagueGroups.sort((a, b) => {
-      const aLive = a.matches.some(m => m.isLive);
-      const bLive = b.matches.some(m => m.isLive);
-      const aRank = (aLive ? 100000 : 0) + this.getLeaguePopularity(a);
-      const bRank = (bLive ? 100000 : 0) + this.getLeaguePopularity(b);
+      const aRank = this.getLeagueSortRank(a);
+      const bRank = this.getLeagueSortRank(b);
       return bRank - aRank;
     });
 
@@ -254,6 +261,33 @@ export class FotMobService {
       leagues: leagueGroups,
       liveCount: liveMatches.length
     };
+  }
+
+  /**
+   * Comprehensive Football League Sort Rank:
+   * 1. Popular Competitions (Tier 1 & 2: popularity >= 700) sorted by popularity:
+   *    - Live popular matches first (20000 + popularity)
+   *    - Finished ("maybe already over") / Upcoming popular matches next (10000 + popularity)
+   * 2. Other Non-Tier-1 Competitions with LIVE matches (5000 + popularity)
+   * 3. Other Non-Tier-1 Competitions with UPCOMING matches (1000 + popularity)
+   * 4. Other Non-Tier-1 Competitions with FINISHED matches (popularity)
+   */
+  static getLeagueSortRank(league) {
+    const popularity = this.getLeaguePopularity(league);
+    const matches = league.matches || [];
+    const hasLive = matches.some(m => m.isLive);
+    const hasUpcoming = matches.some(m => m.isUpcoming);
+
+    const isPopular = popularity >= 700;
+
+    if (isPopular) {
+      if (hasLive) return 20000 + popularity;
+      return 10000 + popularity;
+    }
+
+    if (hasLive) return 5000 + popularity;
+    if (hasUpcoming) return 1000 + popularity;
+    return popularity;
   }
 
   /**
