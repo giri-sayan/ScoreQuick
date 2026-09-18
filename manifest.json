@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "ScoreQuick - Live Scores (FotMob, CREX & F1)",
+  "version": "1.2.0",
+  "description": "Real-time live scores for Football (FotMob), Cricket (CREX) & Formula 1 (Official F1). Follow your favorite teams & drivers with unified feeds and instant alerts.",
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "ScoreQuick Live Scores"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.fotmob.com/*",
+    "https://*.fotmob.com/*",
+    "https://crex.live/*",
+    "https://api.goscorer.com/*",
+    "https://*.crickapi.com/*",
+    "https://site.web.api.espn.com/*",
+    "https://site.api.espn.com/*",
+    "https://*.espncdn.com/*",
+    "https://cricketvectors.akamaized.net/*",
+    "https://storage.googleapis.com/*",
+    "https://livetiming.formula1.com/*",
+    "https://*.formula1.com/*",
+    "https://api.jolpi.ca/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
