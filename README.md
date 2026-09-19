@@ -3,7 +3,7 @@
   <img src="icons/icon128.png" alt="ScoreQuick Logo" width="100" height="100" />
 
   # ScoreQuick ⚡
-  ### Real-Time Live Sports Scores & News Extension for Google Chrome
+  ### Real-Time Live Sports Scores & News Extension for Your Browser
 
   [![Manifest V3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
   [![Version](https://img.shields.io/badge/Version-1.2.0-green?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
@@ -122,7 +122,7 @@ ScoreQuick/
 
 | Setting | Options | Default | Description |
 | :--- | :--- | :--- | :--- |
-| **Auto-Refresh Rate** | `10s`, `30s`, `1m`, `5m` | `10s` | Interval for background and active popup score refresh |
+| **Auto-Refresh Rate** | `10s`, `30s`, `1m` | `10s` | Interval for background and active popup score refresh |
 | **Default Startup View** | Discover, Followed, Football, Cricket, F1, News | Discover | Initial tab displayed upon extension installation |
 | **Followed Filter** | All / Followed | Followed | Toggle to view all matches vs followed teams only |
 | **Desktop Alerts** | On / Off | On | Instant notification when followed team starts/scores |
@@ -146,7 +146,7 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 
 ## 👨‍💻 Author
 
-**Giri Sayan**
+**Sayan Giri**
 - GitHub: [@giri-sayan](https://github.com/giri-sayan)
 - Repository: [https://github.com/giri-sayan/ScoreQuick](https://github.com/giri-sayan/ScoreQuick)
 
