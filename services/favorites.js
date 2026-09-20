@@ -331,6 +331,19 @@ export class FavoritesService {
       { id: 10252, name: 'Aston Villa', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10252.png' },
       { id: 10204, name: 'Brighton', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10204.png' },
       { id: 8654, name: 'West Ham United', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8654.png' },
+<<<<<<< HEAD
+=======
+      { id: 8668, name: 'Everton', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8668.png' },
+      { id: 9879, name: 'Fulham', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9879.png' },
+      { id: 9826, name: 'Crystal Palace', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9826.png' },
+      { id: 9937, name: 'Brentford', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9937.png' },
+      { id: 8602, name: 'Wolverhampton Wanderers', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8602.png' },
+      { id: 8678, name: 'Bournemouth', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8678.png' },
+      { id: 10203, name: 'Nottingham Forest', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10203.png' },
+      { id: 8197, name: 'Leicester City', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8197.png' },
+      { id: 8466, name: 'Southampton', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8466.png' },
+      { id: 9817, name: 'Ipswich Town', league: 'Premier League', category: 'Club', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9817.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       // La Liga
       { id: 8633, name: 'Real Madrid', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8633.png' },
@@ -340,7 +353,22 @@ export class FavoritesService {
       { id: 8560, name: 'Real Sociedad', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8560.png' },
       { id: 8603, name: 'Real Betis', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8603.png' },
       { id: 10205, name: 'Villarreal', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10205.png' },
+<<<<<<< HEAD
       { id: 8302, name: 'Sevilla', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8302.png' },
+=======
+      { id: 9812, name: 'Girona', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9812.png' },
+      { id: 8302, name: 'Sevilla', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8302.png' },
+      { id: 10267, name: 'Valencia', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10267.png' },
+      { id: 8581, name: 'Celta Vigo', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8581.png' },
+      { id: 8371, name: 'Osasuna', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8371.png' },
+      { id: 8429, name: 'Mallorca', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8429.png' },
+      { id: 8305, name: 'Getafe', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8305.png' },
+      { id: 8370, name: 'Rayo Vallecano', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8370.png' },
+      { id: 8649, name: 'Espanyol', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8649.png' },
+      { id: 9864, name: 'Alaves', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9864.png' },
+      { id: 8306, name: 'Las Palmas', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8306.png' },
+      { id: 10284, name: 'Real Valladolid', league: 'La Liga', category: 'Club', country: 'ESP', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10284.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       // Serie A
       { id: 8636, name: 'Inter', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8636.png' },
@@ -351,6 +379,21 @@ export class FavoritesService {
       { id: 8686, name: 'Roma', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8686.png' },
       { id: 8543, name: 'Lazio', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8543.png' },
       { id: 8535, name: 'Fiorentina', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8535.png' },
+<<<<<<< HEAD
+=======
+      { id: 9857, name: 'Bologna', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9857.png' },
+      { id: 9804, name: 'Torino', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9804.png' },
+      { id: 8600, name: 'Udinese', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8600.png' },
+      { id: 10233, name: 'Genoa', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10233.png' },
+      { id: 8534, name: 'Cagliari', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8534.png' },
+      { id: 6504, name: 'Monza', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/6504.png' },
+      { id: 8537, name: 'Empoli', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8537.png' },
+      { id: 10167, name: 'Parma', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10167.png' },
+      { id: 10171, name: 'Como', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10171.png' },
+      { id: 9876, name: 'Hellas Verona', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9876.png' },
+      { id: 9888, name: 'Lecce', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9888.png' },
+      { id: 8461, name: 'Venezia', league: 'Serie A', category: 'Club', country: 'ITA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8461.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       // Bundesliga
       { id: 9823, name: 'Bayern München', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9823.png' },
@@ -359,18 +402,52 @@ export class FavoritesService {
       { id: 178475, name: 'RB Leipzig', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/178475.png' },
       { id: 9810, name: 'Eintracht Frankfurt', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9810.png' },
       { id: 10269, name: 'VfB Stuttgart', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10269.png' },
+<<<<<<< HEAD
+=======
+      { id: 8721, name: 'VfL Wolfsburg', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8721.png' },
+      { id: 9788, name: 'Borussia M\'gladbach', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9788.png' },
+      { id: 9827, name: 'SC Freiburg', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9827.png' },
+      { id: 8406, name: '1. FC Union Berlin', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8406.png' },
+      { id: 8226, name: 'TSG Hoffenheim', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8226.png' },
+      { id: 8697, name: 'SV Werder Bremen', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8697.png' },
+      { id: 8407, name: 'FC Augsburg', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8407.png' },
+      { id: 9905, name: '1. FSV Mainz 05', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9905.png' },
+      { id: 8234, name: '1. FC Heidenheim', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8234.png' },
+      { id: 9776, name: 'FC St. Pauli', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9776.png' },
+      { id: 9911, name: 'VfL Bochum', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9911.png' },
+      { id: 8282, name: 'Holstein Kiel', league: 'Bundesliga', category: 'Club', country: 'GER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8282.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       // Ligue 1
       { id: 9847, name: 'Paris Saint-Germain', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9847.png' },
       { id: 9829, name: 'Monaco', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9829.png' },
       { id: 8592, name: 'Marseille', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8592.png' },
+<<<<<<< HEAD
       { id: 9748, name: 'Lyon', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9748.png' },
       { id: 8639, name: 'Lille', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8639.png' },
+=======
+      { id: 8639, name: 'Lille', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8639.png' },
+      { id: 9748, name: 'Lyon', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9748.png' },
+      { id: 8588, name: 'Lens', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8588.png' },
+      { id: 9831, name: 'Nice', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9831.png' },
+      { id: 9851, name: 'Rennes', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9851.png' },
+      { id: 8521, name: 'Brest', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8521.png' },
+      { id: 8489, name: 'Strasbourg', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8489.png' },
+      { id: 9941, name: 'Toulouse', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9941.png' },
+      { id: 9830, name: 'Nantes', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9830.png' },
+      { id: 9837, name: 'Reims', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9837.png' },
+      { id: 10249, name: 'Montpellier', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10249.png' },
+      { id: 9848, name: 'Auxerre', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9848.png' },
+      { id: 8121, name: 'Angers', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8121.png' },
+      { id: 8637, name: 'Saint-Etienne', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8637.png' },
+      { id: 9747, name: 'Le Havre', league: 'Ligue 1', category: 'Club', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9747.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       // Global Clubs
       { id: 9768, name: 'Sporting CP', league: 'Liga Portugal', category: 'Club', country: 'POR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9768.png' },
       { id: 9772, name: 'Benfica', league: 'Liga Portugal', category: 'Club', country: 'POR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9772.png' },
       { id: 9773, name: 'Porto', league: 'Liga Portugal', category: 'Club', country: 'POR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9773.png' },
+<<<<<<< HEAD
       { id: 8593, name: 'Ajax', league: 'Eredivisie', category: 'Club', country: 'NED', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8593.png' },
       { id: 8640, name: 'PSV', league: 'Eredivisie', category: 'Club', country: 'NED', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8640.png' },
       { id: 102061, name: 'Al Nassr', league: 'Saudi Pro League', category: 'Club', country: 'KSA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/102061.png' },
@@ -380,12 +457,31 @@ export class FavoritesService {
       { id: 9993, name: 'Celtic', league: 'Scottish Premiership', category: 'Club', country: 'SCO', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9993.png' },
       { id: 9912, name: 'Galatasaray', league: 'Süper Lig', category: 'Club', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9912.png' },
       { id: 10268, name: 'Fenerbahce', league: 'Süper Lig', category: 'Club', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10268.png' },
+=======
+      { id: 9771, name: 'Braga', league: 'Liga Portugal', category: 'Club', country: 'POR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9771.png' },
+      { id: 8593, name: 'Ajax', league: 'Eredivisie', category: 'Club', country: 'NED', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8593.png' },
+      { id: 8640, name: 'PSV', league: 'Eredivisie', category: 'Club', country: 'NED', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8640.png' },
+      { id: 10235, name: 'Feyenoord', league: 'Eredivisie', category: 'Club', country: 'NED', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10235.png' },
+      { id: 102061, name: 'Al Nassr', league: 'Saudi Pro League', category: 'Club', country: 'KSA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/102061.png' },
+      { id: 102062, name: 'Al Hilal', league: 'Saudi Pro League', category: 'Club', country: 'KSA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/102062.png' },
+      { id: 8161, name: 'Al Ittihad', league: 'Saudi Pro League', category: 'Club', country: 'KSA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8161.png' },
+      { id: 102060, name: 'Al Ahli', league: 'Saudi Pro League', category: 'Club', country: 'KSA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/102060.png' },
+      { id: 1150495, name: 'Inter Miami', league: 'MLS', category: 'Club', country: 'USA', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/20232.png' },
+      { id: 9993, name: 'Celtic', league: 'Scottish Premiership', category: 'Club', country: 'SCO', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9993.png' },
+      { id: 8548, name: 'Rangers', league: 'Scottish Premiership', category: 'Club', country: 'SCO', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8548.png' },
+      { id: 9912, name: 'Galatasaray', league: 'Süper Lig', category: 'Club', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/9912.png' },
+      { id: 10268, name: 'Fenerbahce', league: 'Süper Lig', category: 'Club', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10268.png' },
+      { id: 10185, name: 'Besiktas', league: 'Süper Lig', category: 'Club', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10185.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
       { id: 5922, name: 'Flamengo', league: 'Brasileirão', category: 'Club', country: 'BRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/5922.png' },
       { id: 10237, name: 'Palmeiras', league: 'Brasileirão', category: 'Club', country: 'BRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10237.png' },
       { id: 10077, name: 'River Plate', league: 'Liga Profesional', category: 'Club', country: 'ARG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10077.png' },
       { id: 10076, name: 'Boca Juniors', league: 'Liga Profesional', category: 'Club', country: 'ARG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/10076.png' },
+<<<<<<< HEAD
 
       // Indian Super League (ISL) Clubs
+=======
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
       { id: 'mbsg', name: 'Mohun Bagan SG', league: 'ISL', category: 'Club', country: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17700.png' },
       { id: 'ebfc', name: 'East Bengal FC', league: 'ISL', category: 'Club', country: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17701.png' },
       { id: 'mcfc_isl', name: 'Mumbai City FC', league: 'ISL', category: 'Club', country: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17697.png' },
@@ -393,13 +489,24 @@ export class FavoritesService {
       { id: 'kbfc', name: 'Kerala Blasters', league: 'ISL', category: 'Club', country: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17698.png' },
       { id: 'fcg', name: 'FC Goa', league: 'ISL', category: 'Club', country: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17699.png' },
 
+<<<<<<< HEAD
       // 🌍 Top International National Teams
+=======
+      // 🌍 International Football Teams (97+ National Teams across CONMEBOL, UEFA, CAF, CONCACAF, AFC, OFC)
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
       { id: 8527, name: 'Argentina', shortName: 'ARG', category: 'International', country: 'ARG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8527.png' },
       { id: 8528, name: 'Brazil', shortName: 'BRA', category: 'International', country: 'BRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8528.png' },
       { id: 8538, name: 'Uruguay', shortName: 'URU', category: 'International', country: 'URU', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8538.png' },
       { id: 8539, name: 'Colombia', shortName: 'COL', category: 'International', country: 'COL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8539.png' },
       { id: 8561, name: 'Chile', shortName: 'CHI', category: 'International', country: 'CHI', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8561.png' },
       { id: 8562, name: 'Ecuador', shortName: 'ECU', category: 'International', country: 'ECU', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8562.png' },
+<<<<<<< HEAD
+=======
+      { id: 8563, name: 'Peru', shortName: 'PER', category: 'International', country: 'PER', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8563.png' },
+      { id: 'paraguay', name: 'Paraguay', shortName: 'PAR', category: 'International', country: 'PAR', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/209.png' },
+      { id: 8573, name: 'Venezuela', shortName: 'VEN', category: 'International', country: 'VEN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8573.png' },
+      { id: 8570, name: 'Bolivia', shortName: 'BOL', category: 'International', country: 'BOL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8570.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       { id: 8529, name: 'France', shortName: 'FRA', category: 'International', country: 'FRA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8529.png' },
       { id: 8530, name: 'England', shortName: 'ENG', category: 'International', country: 'ENG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8530.png' },
@@ -417,7 +524,27 @@ export class FavoritesService {
       { id: 8556, name: 'Sweden', shortName: 'SWE', category: 'International', country: 'SWE', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8556.png' },
       { id: 8557, name: 'Poland', shortName: 'POL', category: 'International', country: 'POL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8557.png' },
       { id: 8558, name: 'Scotland', shortName: 'SCO', category: 'International', country: 'SCO', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8558.png' },
+<<<<<<< HEAD
       { id: 8560, name: 'Turkey', shortName: 'TUR', category: 'International', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8560.png' },
+=======
+      { id: 8559, name: 'Wales', shortName: 'WAL', category: 'International', country: 'WAL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8559.png' },
+      { id: 8560, name: 'Turkey', shortName: 'TUR', category: 'International', country: 'TUR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8560.png' },
+      { id: 8493, name: 'Czech Republic', shortName: 'CZE', category: 'International', country: 'CZE', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8493.png' },
+      { id: 8503, name: 'Hungary', shortName: 'HUN', category: 'International', country: 'HUN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8503.png' },
+      { id: 8524, name: 'Ukraine', shortName: 'UKR', category: 'International', country: 'UKR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8524.png' },
+      { id: 'romania', name: 'Romania', shortName: 'ROU', category: 'International', country: 'ROU', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/474.png' },
+      { id: 8501, name: 'Greece', shortName: 'GRE', category: 'International', country: 'GRE', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8501.png' },
+      { id: 8518, name: 'Serbia', shortName: 'SRB', category: 'International', country: 'SRB', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8518.png' },
+      { id: 8487, name: 'Albania', shortName: 'ALB', category: 'International', country: 'ALB', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8487.png' },
+      { id: 8498, name: 'Georgia', shortName: 'GEO', category: 'International', country: 'GEO', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8498.png' },
+      { id: 8520, name: 'Slovenia', shortName: 'SVN', category: 'International', country: 'SVN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8520.png' },
+      { id: 8519, name: 'Slovakia', shortName: 'SVK', category: 'International', country: 'SVK', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8519.png' },
+      { id: 8496, name: 'Finland', shortName: 'FIN', category: 'International', country: 'FIN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8496.png' },
+      { id: 8504, name: 'Iceland', shortName: 'ISL', category: 'International', country: 'ISL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8504.png' },
+      { id: 8489, name: 'Bosnia and Herzegovina', shortName: 'BIH', category: 'International', country: 'BIH', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8489.png' },
+      { id: 8512, name: 'Northern Ireland', shortName: 'NIR', category: 'International', country: 'NIR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8512.png' },
+      { id: 8505, name: 'Republic of Ireland', shortName: 'IRL', category: 'International', country: 'IRL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8505.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       { id: 'morocco', name: 'Morocco', shortName: 'MAR', category: 'International', country: 'MAR', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/489.png' },
       { id: 8545, name: 'Senegal', shortName: 'SEN', category: 'International', country: 'SEN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8545.png' },
@@ -429,10 +556,38 @@ export class FavoritesService {
       { id: 8551, name: 'Algeria', shortName: 'ALG', category: 'International', country: 'ALG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8551.png' },
       { id: 8266, name: 'South Africa', shortName: 'RSA', category: 'International', country: 'RSA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8266.png' },
       { id: 8251, name: 'Cape Verde', shortName: 'CPV', category: 'International', country: 'CPV', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8251.png' },
+<<<<<<< HEAD
+=======
+      { id: 8261, name: 'Mali', shortName: 'MLI', category: 'International', country: 'MLI', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8261.png' },
+      { id: 8257, name: 'Guinea', shortName: 'GUI', category: 'International', country: 'GUI', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8257.png' },
+      { id: 8254, name: 'DR Congo', shortName: 'COD', category: 'International', country: 'COD', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8254.png' },
+      { id: 8250, name: 'Burkina Faso', shortName: 'BFA', category: 'International', country: 'BFA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8250.png' },
+      { id: 8272, name: 'Zambia', shortName: 'ZAM', category: 'International', country: 'ZAM', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8272.png' },
+      { id: 8248, name: 'Angola', shortName: 'ANG', category: 'International', country: 'ANG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8248.png' },
+      { id: 8263, name: 'Mozambique', shortName: 'MOZ', category: 'International', country: 'MOZ', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8263.png' },
+      { id: 8255, name: 'Equatorial Guinea', shortName: 'EQG', category: 'International', country: 'EQG', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8255.png' },
+      { id: 8262, name: 'Mauritania', shortName: 'MTN', category: 'International', country: 'MTN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8262.png' },
+      { id: 8264, name: 'Namibia', shortName: 'NAM', category: 'International', country: 'NAM', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8264.png' },
+      { id: 8256, name: 'Gambia', shortName: 'GAM', category: 'International', country: 'GAM', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8256.png' },
+      { id: 8274, name: 'Gabon', shortName: 'GAB', category: 'International', country: 'GAB', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8274.png' },
+      { id: 8270, name: 'Uganda', shortName: 'UGA', category: 'International', country: 'UGA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8270.png' },
+      { id: 8259, name: 'Kenya', shortName: 'KEN', category: 'International', country: 'KEN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8259.png' },
+      { id: 8268, name: 'Tanzania', shortName: 'TAN', category: 'International', country: 'TAN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8268.png' },
+      { id: 8273, name: 'Zimbabwe', shortName: 'ZIM', category: 'International', country: 'ZIM', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8273.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       { id: 8541, name: 'USA', shortName: 'USA', category: 'International', country: 'USA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8541.png' },
       { id: 8540, name: 'Mexico', shortName: 'MEX', category: 'International', country: 'MEX', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8540.png' },
       { id: 8564, name: 'Canada', shortName: 'CAN', category: 'International', country: 'CAN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8564.png' },
+<<<<<<< HEAD
+=======
+      { id: 'costarica', name: 'Costa Rica', shortName: 'CRC', category: 'International', country: 'CRC', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/215.png' },
+      { id: 8333, name: 'Jamaica', shortName: 'JAM', category: 'International', country: 'JAM', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8333.png' },
+      { id: 8337, name: 'Panama', shortName: 'PAN', category: 'International', country: 'PAN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8337.png' },
+      { id: 8332, name: 'Honduras', shortName: 'HON', category: 'International', country: 'HON', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8332.png' },
+      { id: 'elsalvador', name: 'El Salvador', shortName: 'SLV', category: 'International', country: 'SLV', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/218.png' },
+      { id: 8342, name: 'Trinidad and Tobago', shortName: 'TRI', category: 'International', country: 'TRI', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8342.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 
       { id: 8542, name: 'Japan', shortName: 'JPN', category: 'International', country: 'JPN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8542.png' },
       { id: 8543, name: 'South Korea', shortName: 'KOR', category: 'International', country: 'KOR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8543.png' },
@@ -441,6 +596,20 @@ export class FavoritesService {
       { id: 8567, name: 'Iran', shortName: 'IRN', category: 'International', country: 'IRN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8567.png' },
       { id: 8568, name: 'Qatar', shortName: 'QAT', category: 'International', country: 'QAT', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8568.png' },
       { id: 8569, name: 'India', shortName: 'IND', category: 'International', country: 'IND', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8569.png' },
+<<<<<<< HEAD
+=======
+      { id: 8322, name: 'Uzbekistan', shortName: 'UZB', category: 'International', country: 'UZB', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8322.png' },
+      { id: 8303, name: 'Jordan', shortName: 'JOR', category: 'International', country: 'JOR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8303.png' },
+      { id: 'iraq', name: 'Iraq', shortName: 'IRQ', category: 'International', country: 'IRQ', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/484.png' },
+      { id: 8321, name: 'UAE', shortName: 'UAE', category: 'International', country: 'UAE', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8321.png' },
+      { id: 8312, name: 'Oman', shortName: 'OMA', category: 'International', country: 'OMA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8312.png' },
+      { id: 8293, name: 'Bahrain', shortName: 'BHR', category: 'International', country: 'BHR', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8293.png' },
+      { id: 8319, name: 'Thailand', shortName: 'THA', category: 'International', country: 'THA', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8319.png' },
+      { id: 8323, name: 'Vietnam', shortName: 'VIE', category: 'International', country: 'VIE', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8323.png' },
+      { id: 8299, name: 'Indonesia', shortName: 'IDN', category: 'International', country: 'IDN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8299.png' },
+      { id: 8307, name: 'Malaysia', shortName: 'MAS', category: 'International', country: 'MAS', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8307.png' },
+      { id: 8295, name: 'China', shortName: 'CHN', category: 'International', country: 'CHN', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8295.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
       { id: 8581, name: 'New Zealand', shortName: 'NZL', category: 'International', country: 'NZL', logo: 'https://images.fotmob.com/image_resources/logo/teamlogo/8581.png' }
     ],
     cricket: [
@@ -451,9 +620,20 @@ export class FavoritesService {
       { id: 'psl', name: 'Pakistan Super League', shortName: 'PSL', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/7.png' },
       { id: 'sa20', name: 'SA20', shortName: 'SA20', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/3.png' },
       { id: 'cpl', name: 'Caribbean Premier League', shortName: 'CPL', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/leaguelogos/cricket/500/8043.png' },
+<<<<<<< HEAD
       { id: 'thehundred', name: 'The Hundred', shortName: 'Hundred', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/leaguelogos/cricket/500/8044.png' },
       { id: 'mlc', name: 'Major League Cricket', shortName: 'MLC', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/11.png' },
       { id: 'ilt20', name: 'International League T20', shortName: 'ILT20', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/27.png' },
+=======
+      { id: 'wcpl', name: 'Women\'s Caribbean Premier League', shortName: 'WCPL', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/leaguelogos/cricket/500/8043.png' },
+      { id: 'thehundred', name: 'The Hundred', shortName: 'Hundred', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/leaguelogos/cricket/500/8044.png' },
+      { id: 'mlc', name: 'Major League Cricket', shortName: 'MLC', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/11.png' },
+      { id: 'ilt20', name: 'International League T20', shortName: 'ILT20', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/27.png' },
+      { id: 'lpl', name: 'Lanka Premier League', shortName: 'LPL', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/8.png' },
+      { id: 'etpl', name: 'European T20 Premier League', shortName: 'ETPL', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/15.png' },
+      { id: 'ausoneday', name: 'Australian Domestic One-Day Cup', shortName: 'Marsh Cup', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/2.png' },
+      { id: 'county', name: 'County Championship', shortName: 'County', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/1.png' },
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
       { id: 'ashes', name: 'The Ashes', shortName: 'Ashes', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/1.png' },
       { id: 'ranji', name: 'Ranji Trophy', shortName: 'Ranji', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/6.png' },
       { id: 'wtc', name: 'ICC World Test Championship', shortName: 'WTC', isLeague: true, category: 'Tournament', logo: 'https://a.espncdn.com/i/leaguelogos/cricket/500/8048.png' },
@@ -489,7 +669,28 @@ export class FavoritesService {
       { id: 'gt', name: 'Gujarat Titans', shortName: 'GT', category: 'IPL Franchise', logo: 'https://scores.iplt20.com/ipl/teamlogos/GT.png' },
       { id: 'pbks', name: 'Punjab Kings', shortName: 'PBKS', category: 'IPL Franchise', logo: 'https://scores.iplt20.com/ipl/teamlogos/PBKS.png' },
       { id: 'srh', name: 'Sunrisers Hyderabad', shortName: 'SRH', category: 'IPL Franchise', logo: 'https://scores.iplt20.com/ipl/teamlogos/SRH.png' },
+<<<<<<< HEAD
       { id: 'lsg', name: 'Lucknow Super Giants', shortName: 'LSG', category: 'IPL Franchise', logo: 'https://scores.iplt20.com/ipl/teamlogos/LSG.png' }
+=======
+      { id: 'lsg', name: 'Lucknow Super Giants', shortName: 'LSG', category: 'IPL Franchise', logo: 'https://scores.iplt20.com/ipl/teamlogos/LSG.png' },
+
+      // 🌴 CPL Franchises
+      { id: 'gaw', name: 'Guyana Amazon Warriors', shortName: 'GAW', category: 'CPL Franchise', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/642413.png' },
+      { id: 'tkr', name: 'Trinbago Knight Riders', shortName: 'TKR', category: 'CPL Franchise', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/642417.png' },
+      { id: 'br', name: 'Barbados Royals', shortName: 'BR', category: 'CPL Franchise', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/642411.png' },
+      { id: 'slk', name: 'St Lucia Kings', shortName: 'SLK', category: 'CPL Franchise', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/642415.png' },
+      { id: 'abf', name: 'Antigua & Barbuda Falcons', shortName: 'ABF', category: 'CPL Franchise', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/4.png' },
+      { id: 'jkm', name: 'Jamaica Kingsmen', shortName: 'JKM', category: 'CPL Franchise', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/4.png' },
+
+      // 🦁 Top English Counties
+      { id: 'lan', name: 'Lancashire', shortName: 'LAN', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/1098.png' },
+      { id: 'not', name: 'Nottinghamshire', shortName: 'NOT', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/1231.png' },
+      { id: 'dur', name: 'Durham', shortName: 'DUR', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/924.png' },
+      { id: 'wor', name: 'Worcestershire', shortName: 'WOR', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/1458.png' },
+      { id: 'der', name: 'Derbyshire', shortName: 'DER', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/904.png' },
+      { id: 'nor', name: 'Northamptonshire', shortName: 'NOR', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/1221.png' },
+      { id: 'glo', name: 'Gloucestershire', shortName: 'GLO', category: 'English County', logo: 'https://a.espncdn.com/i/teamlogos/cricket/500/984.png' }
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
     ],
     f1: [
       // Constructors / Teams

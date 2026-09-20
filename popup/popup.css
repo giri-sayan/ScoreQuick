@@ -518,7 +518,11 @@ body {
    Discover Tab UI
    ========================================================================== */
 .discover-subbar {
+<<<<<<< HEAD
   margin-bottom: 9px;
+=======
+  margin-bottom: 8px;
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -536,6 +540,7 @@ body {
 }
 
 .sub-filter-pills .pill {
+<<<<<<< HEAD
   font-size: 10.5px;
   padding: 3px 10px;
   border-radius: 9999px;
@@ -545,22 +550,44 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+=======
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
   flex-shrink: 0;
 }
 
 .sub-filter-pills .pill:hover {
+<<<<<<< HEAD
   background: var(--bg-pill-hover);
   color: #ffffff;
   border-color: var(--border-hover);
   transform: translateY(-1px);
+=======
+  background: var(--bg-card-hover);
+  color: #ffffff;
+  border-color: var(--border-hover);
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 }
 
 .sub-filter-pills .pill.active {
   background: var(--accent-purple-subtle);
   color: var(--accent-purple-highlight);
+<<<<<<< HEAD
   border-color: var(--accent-purple-bright);
   box-shadow: 0 0 8px var(--accent-purple-glow);
   font-weight: 700;
+=======
+  border-color: var(--accent-purple);
+  font-weight: 600;
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
 }
 
 .discover-search-box {

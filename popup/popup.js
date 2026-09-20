@@ -876,8 +876,68 @@ function renderDiscoverView() {
   const INITIAL_BATCH = 60;
   const initialItems = catalog.slice(0, INITIAL_BATCH);
 
+<<<<<<< HEAD
   initialItems.forEach(item => {
     fragment.appendChild(createDiscoverCard(item));
+=======
+    // Subtitle
+    let subtitle = '';
+    if (item.isLeague) {
+      subtitle = item.sport === 'football' ? '🏆 Football League' : '🏆 Cricket Tournament';
+    } else if (item.sport === 'football') {
+      subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Club');
+    } else if (item.sport === 'cricket') {
+      subtitle = item.category || 'Cricket Team';
+    } else if (item.sport === 'f1') {
+      if (item.category === 'Constructor' || item.isTeam) {
+        subtitle = '🏁 F1 Constructor';
+      } else {
+        subtitle = item.team ? `${item.team} #${item.number || ''}` : 'F1 Driver';
+      }
+    }
+
+    // Avatar/Logo
+    let avatarHtml = '';
+    if (item.isLeague) {
+      const logoUrl = item.logo || FavoritesService.getLeagueLogo(item.sport, item.name, item.id);
+      avatarHtml = renderLeagueAvatar(logoUrl, item.name, item.sport, 'discover-avatar-wrapper');
+    } else if (item.sport === 'f1') {
+      if (item.category === 'Constructor' || item.isTeam) {
+        avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#8b5cf6'}; color: #fff; font-size: 11px;">🏁</span>`;
+      } else {
+        avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#334155'}; color: #fff; font-size: 10px;">${item.code || item.name.substring(0, 3).toUpperCase()}</span>`;
+      }
+    } else {
+      const sportKey = item.sport === 'cricket' ? 'cr' : 'fb';
+      const logoUrl = item.logo || (item.sport === 'cricket' ? FavoritesService.getCricketLogo(item.name, item.shortName) : FavoritesService.getFootballLogo(item.name, item.shortName, item.id));
+      avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, sportKey);
+    }
+
+    card.innerHTML = `
+      <div class="discover-card-left">
+        ${avatarHtml}
+        <div class="discover-meta">
+          <span class="discover-name">${item.name}</span>
+          <span class="discover-sub">${subtitle}</span>
+        </div>
+      </div>
+      <button class="follow-toggle-btn ${isFollowed ? 'is-following' : ''}">
+        ${isFollowed ? '★ Following' : '+ Follow'}
+      </button>
+    `;
+
+    // Follow toggle button listener
+    const btn = card.querySelector('.follow-toggle-btn');
+    btn.addEventListener('click', async () => {
+      await FavoritesService.toggleFollow(item.sport, item);
+      appState.favorites = await FavoritesService.getFavorites();
+      updateFollowedMatches();
+      renderAllViews();
+      renderSettingsChips();
+    });
+
+    elements.discoverList.appendChild(card);
+>>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
   });
   elements.discoverList.appendChild(fragment);
 
