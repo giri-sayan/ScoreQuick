@@ -6,6 +6,9 @@
 
 export class F1Service {
   static BASE_URL = 'https://livetiming.formula1.com/static';
+  static _cachedStaticF1 = null;
+  static _lastStaticFetch = 0;
+  static F1_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache for calendar and race results
 
   static TEAM_COLORS = {
     'mercedes': '#27F4D2',
@@ -51,27 +54,57 @@ export class F1Service {
   }
 
   /**
-   * Main fetch method for F1 data
+   * Main fetch method for F1 data with 10-minute caching and timeout protection
    */
   static async fetchF1Data() {
-    const currentYear = new Date().getFullYear();
     const now = new Date();
+    const nowMs = Date.now();
 
     try {
-      // Fetch live timing CDN, Ergast calendar, last results, quali, and sprint in parallel
-      const [sessionInfoRes, calendarRes, resultsRes, qualiRes, sprintRes] = await Promise.allSettled([
-        fetch(`${this.BASE_URL}/SessionInfo.json`, { headers: { 'Accept': 'application/json' } }).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch('https://api.jolpi.ca/ergast/f1/current.json').then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch('https://api.jolpi.ca/ergast/f1/current/last/results.json').then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch('https://api.jolpi.ca/ergast/f1/current/last/qualifying.json').then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch('https://api.jolpi.ca/ergast/f1/current/last/sprint.json').then(r => r.ok ? r.json() : null).catch(() => null)
-      ]);
+      // Helper with 2.5s AbortController timeout
+      const fetchWithTimeout = async (url) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        try {
+          const r = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+          clearTimeout(timeoutId);
+          return r.ok ? await r.json() : null;
+        } catch (_) {
+          clearTimeout(timeoutId);
+          return null;
+        }
+      };
 
-      const sessionInfo = sessionInfoRes.status === 'fulfilled' ? sessionInfoRes.value : null;
-      const calendarData = calendarRes.status === 'fulfilled' ? calendarRes.value : null;
-      const resultsData = resultsRes.status === 'fulfilled' ? resultsRes.value : null;
-      const qualiData = qualiRes.status === 'fulfilled' ? qualiRes.value : null;
-      const sprintData = sprintRes.status === 'fulfilled' ? sprintRes.value : null;
+      // Check if static calendar/results are cached
+      let staticData = (this._cachedStaticF1 && (nowMs - this._lastStaticFetch < this.F1_CACHE_TTL)) ? this._cachedStaticF1 : null;
+
+      const sessionInfoTask = fetchWithTimeout(`${this.BASE_URL}/SessionInfo.json`);
+
+      let calendarData, resultsData, qualiData, sprintData;
+      if (staticData) {
+        calendarData = staticData.calendarData;
+        resultsData = staticData.resultsData;
+        qualiData = staticData.qualiData;
+        sprintData = staticData.sprintData;
+      } else {
+        const [calRes, resRes, quaRes, sprRes] = await Promise.allSettled([
+          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current.json'),
+          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/results.json'),
+          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/qualifying.json'),
+          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/sprint.json')
+        ]);
+        calendarData = calRes.status === 'fulfilled' ? calRes.value : null;
+        resultsData = resRes.status === 'fulfilled' ? resRes.value : null;
+        qualiData = quaRes.status === 'fulfilled' ? quaRes.value : null;
+        sprintData = sprRes.status === 'fulfilled' ? sprRes.value : null;
+
+        if (calendarData || resultsData) {
+          this._cachedStaticF1 = { calendarData, resultsData, qualiData, sprintData };
+          this._lastStaticFetch = nowMs;
+        }
+      }
+
+      const sessionInfo = await sessionInfoTask;
 
       // 1. Detect if an active live session is happening right now
       const archiveStatus = sessionInfo?.ArchiveStatus?.Status || '';

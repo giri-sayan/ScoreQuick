@@ -1,15 +1,15 @@
 /**
- * ScoreQuick - Popup Controller (v1.4)
+ * ScoreQuick - Popup Controller
  * Features:
  * 1. Dedicated 🔍 Discover Tab: Sport filters, catalog search, 1-click follow clubs, drivers & constructors.
- * 2. 📰 Multi-Sport News Tab: Rich news from FotMob, CREX & F1 with ⭐ Followed vs All filters.
- * 3. F1 Teams & Constructors Following: Follow McLaren, Ferrari, Red Bull, etc., alongside drivers.
- * 4. Cricket Team Logos: Verified high-res crests for all 20 international & IPL teams.
+ * 2. 📰 Multi-Sport News Tab: Aggregated breaking news with ⭐ Followed vs All filters.
+ * 3. F1 Teams & Constructors Following: Follow teams and drivers with real-time standings.
+ * 4. Cricket Team Logos: Verified high-res crests for international and franchise teams.
  * 5. Midnight Purple / Electric Violet modern dashboard theme.
  */
 
-import { FotMobService } from '../services/fotmob.js';
-import { CrexService } from '../services/crex.js';
+import { FootballService } from '../services/football.js';
+import { CricketService } from '../services/cricket.js';
 import { F1Service } from '../services/f1.js';
 import { FavoritesService } from '../services/favorites.js';
 import { NewsService } from '../services/news.js';
@@ -18,7 +18,8 @@ import { NewsService } from '../services/news.js';
 let appState = {
   currentTab: 'discover',
   searchQuery: '',
-  discoverSport: 'all',  // 'all' | 'leagues' | 'football' | 'cricket' | 'f1'
+  discoverSport: 'all',      // 'all' | 'football' | 'cricket' | 'f1'
+  discoverCategory: 'all',   // 'all' | 'clubs' | 'intl' | 'leagues' | 'drivers' | 'constructors' | 'franchises'
   discoverQuery: '',
   newsFilter: 'followed', // 'followed' | 'all' | 'football' | 'cricket' | 'f1'
   newsQuery: '',
@@ -32,7 +33,8 @@ let appState = {
   followedMatches: [],
   refreshSecondsLeft: 10,
   refreshIntervalTotal: 10,
-  countdownTimer: null
+  countdownTimer: null,
+  isInitialLoad: true
 };
 
 /**
@@ -52,6 +54,27 @@ function openTab(url) {
   window.open(url, '_blank');
 }
 
+/**
+ * Lightweight Debounce Helper for smooth, lag-free 60fps input handling
+ */
+function debounce(fn, ms = 80) {
+  let timer = null;
+  return function(...args) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(() => fn.apply(this, args));
+      } else {
+        fn.apply(this, args);
+      }
+    }, ms);
+  };
+}
+
+// Global handle for idle batch render cancellation
+let pendingDiscoverIdleId = null;
+
 // DOM Elements
 const elements = {
   tabBtns: document.querySelectorAll('.tab-btn'),
@@ -63,8 +86,9 @@ const elements = {
   globalLivePill: document.getElementById('global-live-pill'),
   globalLiveCount: document.getElementById('global-live-count'),
   badgeFollowed: document.getElementById('badge-followed'),
-  loadingSpinner: document.getElementById('loading-spinner'),
   lastUpdatedText: document.getElementById('last-updated-text'),
+  loadingSpinner: document.getElementById('loading-spinner'),
+  loadingSpinnerText: document.getElementById('loading-spinner-text'),
   
   // Followed Tab
   followedList: document.getElementById('followed-list'),
@@ -113,14 +137,18 @@ const elements = {
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
 
-  // 1. Restore active tab and subtabs remembered from current browser session
-  await restoreTabState();
+  // 1. Concurrently restore remembered session tab state and instant cached data in parallel
+  await Promise.all([
+    restoreTabState(),
+    loadCachedData()
+  ]);
 
-  // 2. Fast load cached state for instant rendering (<10ms)
-  await loadCachedData();
+  // 2. Render initial subfilters and current tab view with 0ms delay
+  renderDiscoverSubfilters();
+  renderAllViews();
 
-  // 3. Fresh background fetch across FotMob, CREX, and F1
-  await fetchLiveScores(true);
+  // 3. Live sync in background with spinner feedback if no cache
+  fetchLiveScores(false);
 
   // 4. Start auto-refresh timer
   startAutoRefreshCountdown();
@@ -142,11 +170,15 @@ function setupEventListeners() {
     });
   }
 
-  // Global Search
+  // Global Search (debounced 120ms for smooth 60fps typing)
+  const debouncedGlobalSearch = debounce(() => {
+    renderAllViews();
+  }, 120);
+
   elements.searchInput.addEventListener('input', e => {
     appState.searchQuery = e.target.value.toLowerCase().trim();
     elements.searchClear.style.display = appState.searchQuery ? 'block' : 'none';
-    renderAllViews();
+    debouncedGlobalSearch();
   });
 
   elements.searchClear.addEventListener('click', () => {
@@ -156,11 +188,15 @@ function setupEventListeners() {
     renderAllViews();
   });
 
-  // Discover Tab Search
+  // Discover Tab Search (debounced 120ms)
   if (elements.discoverSearchInput) {
+    const debouncedDiscoverSearch = debounce(() => {
+      renderDiscoverView();
+    }, 120);
+
     elements.discoverSearchInput.addEventListener('input', e => {
       appState.discoverQuery = e.target.value.toLowerCase().trim();
-      renderDiscoverView();
+      debouncedDiscoverSearch();
     });
   }
 
@@ -170,6 +206,8 @@ function setupEventListeners() {
       document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       appState.discoverSport = btn.dataset.discSport;
+      appState.discoverCategory = 'all';
+      renderDiscoverSubfilters();
       saveTabState();
       renderDiscoverView();
     });
@@ -177,14 +215,8 @@ function setupEventListeners() {
 
   // Manual Refresh
   elements.refreshBtn.addEventListener('click', async () => {
-    triggerRefreshAnimation(true);
-    const fetchTask = fetchLiveScores(true);
-    await Promise.all([
-      fetchTask,
-      new Promise(r => setTimeout(r, 1700))
-    ]);
-    triggerRefreshAnimation(false);
     resetRefreshTimer();
+    await fetchLiveScores(true);
   });
 
   // Sub-filters (Football All vs Live)
@@ -220,11 +252,15 @@ function setupEventListeners() {
     });
   });
 
-  // News Search
+  // News Search (debounced 120ms)
   if (elements.newsSearchInput) {
+    const debouncedNewsSearch = debounce(() => {
+      renderNewsView();
+    }, 120);
+
     elements.newsSearchInput.addEventListener('input', e => {
       appState.newsQuery = e.target.value.toLowerCase().trim();
-      renderNewsView();
+      debouncedNewsSearch();
     });
   }
 
@@ -331,6 +367,67 @@ function switchTab(tabName) {
   saveTabState();
 }
 
+function getSubfiltersForSport(sport) {
+  switch (sport) {
+    case 'football':
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'clubs', label: '🛡️ Clubs' },
+        { id: 'intl', label: '🌍 National Teams' },
+        { id: 'leagues', label: '🏆 Leagues' }
+      ];
+    case 'cricket':
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'intl', label: '🌍 International' },
+        { id: 'franchises', label: '🛡️ Franchises / Teams' },
+        { id: 'leagues', label: '🏆 Tournaments' }
+      ];
+    case 'f1':
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'drivers', label: '🏎️ Drivers' },
+        { id: 'constructors', label: '🏁 Constructors' }
+      ];
+    case 'all':
+    default:
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'clubs', label: '🛡️ Clubs & Franchises' },
+        { id: 'intl', label: '🌍 National Teams' },
+        { id: 'leagues', label: '🏆 Leagues & Tournaments' },
+        { id: 'drivers', label: '🏎️ Drivers' },
+        { id: 'constructors', label: '🏁 Constructors' }
+      ];
+  }
+}
+
+function renderDiscoverSubfilters() {
+  const container = document.getElementById('discover-subfilter-pills');
+  if (!container) return;
+
+  const filters = getSubfiltersForSport(appState.discoverSport);
+  if (!filters.some(f => f.id === appState.discoverCategory)) {
+    appState.discoverCategory = 'all';
+  }
+
+  container.innerHTML = '';
+  filters.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = `pill ${appState.discoverCategory === f.id ? 'active' : ''}`;
+    btn.dataset.discCat = f.id;
+    btn.textContent = f.label;
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appState.discoverCategory = f.id;
+      saveTabState();
+      renderDiscoverView();
+    });
+    container.appendChild(btn);
+  });
+}
+
 /**
  * Persist current tab + subtab filters to session storage so the popup
  * reopens on the same view within the same browser session.
@@ -339,6 +436,7 @@ function saveTabState() {
   const stateObj = {
     currentTab: appState.currentTab,
     discoverSport: appState.discoverSport,
+    discoverCategory: appState.discoverCategory,
     newsFilter: appState.newsFilter,
     footballFilter: appState.footballFilter,
     cricketFilter: appState.cricketFilter
@@ -367,8 +465,11 @@ async function restoreTabState() {
         elements.tabViews.forEach(v => v.classList.toggle('active', v.id === `tab-${saved.currentTab}`));
 
         if (saved.discoverSport) {
-          appState.discoverSport = saved.discoverSport;
-          document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.toggle('active', b.dataset.discSport === saved.discoverSport));
+          appState.discoverSport = saved.discoverSport === 'leagues' ? 'all' : saved.discoverSport;
+          document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.toggle('active', b.dataset.discSport === appState.discoverSport));
+        }
+        if (saved.discoverCategory) {
+          appState.discoverCategory = saved.discoverCategory;
         }
         if (saved.newsFilter) {
           appState.newsFilter = saved.newsFilter;
@@ -388,6 +489,7 @@ async function restoreTabState() {
         elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'discover'));
         elements.tabViews.forEach(v => v.classList.toggle('active', v.id === 'tab-discover'));
       }
+      renderDiscoverSubfilters();
       resolve();
     };
 
@@ -407,63 +509,79 @@ async function restoreTabState() {
 async function loadCachedData() {
   appState.favorites = await FavoritesService.getFavorites();
 
-  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-    chrome.storage.local.get(['scorequick_latest_data', 'scorequick_poll_interval', 'scorequick_notifications_enabled'], res => {
-      if (res?.scorequick_poll_interval) {
-        const clampedInterval = Math.min(Math.max(Number(res.scorequick_poll_interval) || 10, 10), 60);
-        appState.refreshIntervalTotal = clampedInterval;
-        elements.pollIntervalSelect.value = String(clampedInterval);
-      } else {
-        appState.refreshIntervalTotal = 10;
-        elements.pollIntervalSelect.value = '10';
-      }
-      if (res?.scorequick_notifications_enabled !== undefined) {
-        elements.toggleNotifications.checked = res.scorequick_notifications_enabled;
-      }
-
-      if (res?.scorequick_latest_data) {
-        const cached = res.scorequick_latest_data;
-        appState.footballData = cached.football;
-        appState.cricketData = cached.cricket;
-        appState.f1Data = cached.f1;
-        updateFollowedMatches();
-        renderAllViews();
-        if (cached.timestamp) {
-          const ago = Math.round((Date.now() - cached.timestamp) / 1000);
-          elements.lastUpdatedText.textContent = `Updated ${ago < 5 ? 'just now' : ago + 's ago'}`;
+  return new Promise(resolve => {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get(['scorequick_latest_data', 'scorequick_poll_interval', 'scorequick_notifications_enabled'], res => {
+        if (res?.scorequick_poll_interval) {
+          const clampedInterval = Math.min(Math.max(Number(res.scorequick_poll_interval) || 10, 10), 60);
+          appState.refreshIntervalTotal = clampedInterval;
+          if (elements.pollIntervalSelect) elements.pollIntervalSelect.value = String(clampedInterval);
+        } else {
+          appState.refreshIntervalTotal = 10;
+          if (elements.pollIntervalSelect) elements.pollIntervalSelect.value = '10';
         }
-      }
-    });
+        if (res?.scorequick_notifications_enabled !== undefined && elements.toggleNotifications) {
+          elements.toggleNotifications.checked = res.scorequick_notifications_enabled;
+        }
 
-    // Also load cached news immediately
-    NewsService.getCachedNews().then(cachedNews => {
-      if (cachedNews && cachedNews.length > 0) {
-        appState.newsData = {
-          all: cachedNews,
-          football: cachedNews.filter(n => n.sport === 'football'),
-          cricket: cachedNews.filter(n => n.sport === 'cricket'),
-          f1: cachedNews.filter(n => n.sport === 'f1')
-        };
-        renderNewsView();
-      }
-    });
-  }
+        if (res?.scorequick_latest_data) {
+          const cached = res.scorequick_latest_data;
+          appState.footballData = cached.football;
+          appState.cricketData = cached.cricket;
+          appState.f1Data = cached.f1;
+          updateFollowedMatches();
+          renderAllViews();
+          if (cached.timestamp && elements.lastUpdatedText) {
+            const ago = Math.round((Date.now() - cached.timestamp) / 1000);
+            elements.lastUpdatedText.textContent = `Updated ${ago < 5 ? 'just now' : ago + 's ago'}`;
+          }
+        }
+        resolve();
+      });
+
+      // Also load cached news immediately
+      NewsService.getCachedNews().then(cachedNews => {
+        if (cachedNews && cachedNews.length > 0) {
+          appState.newsData = {
+            all: cachedNews,
+            football: cachedNews.filter(n => n.sport === 'football'),
+            cricket: cachedNews.filter(n => n.sport === 'cricket'),
+            f1: cachedNews.filter(n => n.sport === 'f1')
+          };
+          if (appState.currentTab === 'news') renderNewsView();
+        }
+      });
+    } else {
+      resolve();
+    }
+  });
 }
 
 /**
- * Fresh live score fetch from FotMob, CREX, F1, and News
+ * Fresh live score fetch from Football, Cricket, F1, and News
  */
-async function fetchLiveScores(showLoader = false) {
-  if (showLoader && !appState.footballData && !appState.f1Data) {
+async function fetchLiveScores(forceRefresh = false) {
+  // Only show the prominent loading spinner on the very first cold load when no data exists yet
+  const showInitialBuffer = appState.isInitialLoad && (!appState.footballData && !appState.cricketData);
+
+  if (showInitialBuffer && elements.loadingSpinner) {
     elements.loadingSpinner.style.display = 'flex';
+    if (elements.loadingSpinnerText) {
+      elements.loadingSpinnerText.textContent = 'Syncing live stats...';
+    }
+  } else if (elements.loadingSpinner) {
+    elements.loadingSpinner.style.display = 'none';
   }
+
+  // Always animate the refresh live scores button with purple glow and continuous spin
+  triggerRefreshAnimation(true);
 
   try {
     const [fbRes, crRes, f1Res, newsRes, favsRes] = await Promise.allSettled([
-      FotMobService.fetchMatches(),
-      CrexService.fetchMatches(),
+      FootballService.fetchMatches(null, forceRefresh),
+      CricketService.fetchMatches(),
       F1Service.fetchF1Data(),
-      NewsService.fetchAllNews(),
+      NewsService.fetchAllNews(forceRefresh),
       FavoritesService.getFavorites()
     ]);
 
@@ -473,15 +591,23 @@ async function fetchLiveScores(showLoader = false) {
     if (newsRes.status === 'fulfilled' && newsRes.value) appState.newsData = newsRes.value;
     if (favsRes.status === 'fulfilled' && favsRes.value) appState.favorites = favsRes.value;
 
+    appState.isInitialLoad = false;
     updateFollowedMatches();
     renderAllViews();
 
-    elements.lastUpdatedText.textContent = `Updated just now (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})`;
+    if (elements.lastUpdatedText) {
+      elements.lastUpdatedText.textContent = `Updated just now (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})`;
+    }
   } catch (err) {
     console.error('Error fetching live scores:', err);
-    elements.lastUpdatedText.textContent = 'Displaying cached scores (reconnecting)';
+    if (elements.lastUpdatedText) {
+      elements.lastUpdatedText.textContent = 'Displaying cached scores (reconnecting)';
+    }
   } finally {
-    elements.loadingSpinner.style.display = 'none';
+    if (elements.loadingSpinner) {
+      elements.loadingSpinner.style.display = 'none';
+    }
+    triggerRefreshAnimation(false);
   }
 }
 
@@ -609,21 +735,94 @@ function renderFollowedView() {
     elements.followedEmpty.style.display = 'block';
   } else {
     elements.followedEmpty.style.display = 'none';
+    const fragment = document.createDocumentFragment();
     items.forEach(item => {
       if (item.sport === 'football') {
-        elements.followedList.appendChild(createFootballCard(item));
+        fragment.appendChild(createFootballCard(item));
       } else if (item.sport === 'cricket') {
-        elements.followedList.appendChild(createCricketCard(item));
+        fragment.appendChild(createCricketCard(item));
       } else if (item.sport === 'f1') {
-        elements.followedList.appendChild(createFollowedF1Card(item));
+        fragment.appendChild(createFollowedF1Card(item));
       }
     });
+    elements.followedList.appendChild(fragment);
   }
 }
 
 /**
+ * Factory for Discover Card DOM Element
+ */
+function createDiscoverCard(item) {
+  const card = document.createElement('div');
+  card.className = `discover-card ${item.isLeague ? 'is-league-card' : ''}`;
+
+  const isFollowed = item.isLeague
+    ? FavoritesService.isLeagueFollowed(appState.favorites, item.sport, item.name, item.id)
+    : FavoritesService.isTeamFollowed(appState.favorites, item.sport, item.name, item.id);
+
+  // Subtitle
+  let subtitle = '';
+  if (item.isLeague) {
+    subtitle = item.sport === 'football' ? '🏆 Football League' : '🏆 Cricket Tournament';
+  } else if (item.sport === 'football') {
+    subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Club');
+  } else if (item.sport === 'cricket') {
+    subtitle = item.category || 'Cricket Team';
+  } else if (item.sport === 'f1') {
+    if (item.category === 'Constructor' || item.isTeam) {
+      subtitle = '🏁 F1 Constructor';
+    } else {
+      subtitle = item.team ? `${item.team} #${item.number || ''}` : 'F1 Driver';
+    }
+  }
+
+  // Avatar/Logo
+  let avatarHtml = '';
+  if (item.isLeague) {
+    const logoUrl = item.logo || FavoritesService.getLeagueLogo(item.sport, item.name, item.id);
+    avatarHtml = renderLeagueAvatar(logoUrl, item.name, item.sport, 'discover-avatar-wrapper');
+  } else if (item.sport === 'f1') {
+    if (item.category === 'Constructor' || item.isTeam) {
+      avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#8b5cf6'}; color: #fff; font-size: 11px;">🏁</span>`;
+    } else {
+      avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#334155'}; color: #fff; font-size: 10px;">${item.code || item.name.substring(0, 3).toUpperCase()}</span>`;
+    }
+  } else {
+    const sportKey = item.sport === 'cricket' ? 'cr' : 'fb';
+    const logoUrl = item.logo || (item.sport === 'cricket' ? FavoritesService.getCricketLogo(item.name, item.shortName) : FavoritesService.getFootballLogo(item.name, item.shortName, item.id));
+    avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, sportKey);
+  }
+
+  card.innerHTML = `
+    <div class="discover-card-left">
+      ${avatarHtml}
+      <div class="discover-meta">
+        <span class="discover-name">${item.name}</span>
+        <span class="discover-sub">${subtitle}</span>
+      </div>
+    </div>
+    <button class="follow-toggle-btn ${isFollowed ? 'is-following' : ''}">
+      ${isFollowed ? '★ Following' : '+ Follow'}
+    </button>
+  `;
+
+  // Follow toggle button listener
+  const btn = card.querySelector('.follow-toggle-btn');
+  btn.addEventListener('click', async () => {
+    await FavoritesService.toggleFollow(item.sport, item);
+    appState.favorites = await FavoritesService.getFavorites();
+    updateFollowedMatches();
+    renderAllViews();
+    renderSettingsChips();
+  });
+
+  return card;
+}
+
+/**
  * Render 🔍 Discover Tab
- * Choose Sport, Search, and 1-Click Follow
+ * Choose Sport, Search, and 1-Click Follow.
+ * Highly optimized with DocumentFragment & Chunked/Virtual render to prevent any UI freeze.
  */
 function renderDiscoverView() {
   if (!elements.discoverList) return;
@@ -634,6 +833,7 @@ function renderDiscoverView() {
   const crSeries = appState.cricketData?.series || [];
   let catalog = FavoritesService.getDiscoverableItems(
     appState.discoverSport, 
+    appState.discoverCategory,
     fbMatches, 
     crMatches, 
     appState.f1Data, 
@@ -654,79 +854,56 @@ function renderDiscoverView() {
     );
   }
 
+  if (pendingDiscoverIdleId) {
+    if (window.cancelIdleCallback) {
+      window.cancelIdleCallback(pendingDiscoverIdleId);
+    } else {
+      clearTimeout(pendingDiscoverIdleId);
+    }
+    pendingDiscoverIdleId = null;
+  }
+
   elements.discoverCountTag.textContent = `${catalog.length} Available`;
   elements.discoverList.innerHTML = '';
 
-  catalog.forEach(item => {
-    const card = document.createElement('div');
-    card.className = `discover-card ${item.isLeague ? 'is-league-card' : ''}`;
+  if (catalog.length === 0) {
+    elements.discoverList.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1; padding: 24px 0;"><p style="color: var(--text-dim); font-size: 11px;">No teams, clubs, or leagues match your criteria.</p></div>';
+    return;
+  }
 
-    const isFollowed = item.isLeague
-      ? FavoritesService.isLeagueFollowed(appState.favorites, item.sport, item.name, item.id)
-      : FavoritesService.isTeamFollowed(appState.favorites, item.sport, item.name, item.id);
+  // Batch insertion via DocumentFragment for 0ms frame lag
+  const fragment = document.createDocumentFragment();
+  const INITIAL_BATCH = 60;
+  const initialItems = catalog.slice(0, INITIAL_BATCH);
 
-    // Subtitle
-    let subtitle = '';
-    if (item.isLeague) {
-      subtitle = item.sport === 'football' ? '🏆 Football League' : '🏆 Cricket Tournament';
-    } else if (item.sport === 'football') {
-      subtitle = item.league || 'Football Club';
-    } else if (item.sport === 'cricket') {
-      subtitle = item.category || 'Cricket Team';
-    } else if (item.sport === 'f1') {
-      if (item.category === 'Constructor' || item.isTeam) {
-        subtitle = '🏁 F1 Constructor';
-      } else {
-        subtitle = item.team ? `${item.team} #${item.number || ''}` : 'F1 Driver';
-      }
-    }
-
-    // Avatar/Logo
-    let avatarHtml = '';
-    if (item.isLeague) {
-      const logoUrl = item.logo || FavoritesService.getLeagueLogo(item.sport, item.name, item.id);
-      avatarHtml = renderLeagueAvatar(logoUrl, item.name, item.sport, 'discover-avatar-wrapper');
-    } else if (item.sport === 'f1') {
-      if (item.category === 'Constructor' || item.isTeam) {
-        avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#8b5cf6'}; color: #fff; font-size: 11px;">🏁</span>`;
-      } else {
-        avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#334155'}; color: #fff; font-size: 10px;">${item.code || item.name.substring(0, 3).toUpperCase()}</span>`;
-      }
-    } else {
-      const sportKey = item.sport === 'cricket' ? 'cr' : 'fb';
-      const logoUrl = item.logo || (item.sport === 'cricket' ? FavoritesService.getCricketLogo(item.name, item.shortName) : '');
-      avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, sportKey);
-    }
-
-    card.innerHTML = `
-      <div class="discover-card-left">
-        ${avatarHtml}
-        <div class="discover-meta">
-          <span class="discover-name">${item.name}</span>
-          <span class="discover-sub">${subtitle}</span>
-        </div>
-      </div>
-      <button class="follow-toggle-btn ${isFollowed ? 'is-following' : ''}">
-        ${isFollowed ? '★ Following' : '+ Follow'}
-      </button>
-    `;
-
-    // Follow toggle button listener
-    const btn = card.querySelector('.follow-toggle-btn');
-    btn.addEventListener('click', async () => {
-      await FavoritesService.toggleFollow(item.sport, item);
-      appState.favorites = await FavoritesService.getFavorites();
-      updateFollowedMatches();
-      renderAllViews();
-      renderSettingsChips();
-    });
-
-    elements.discoverList.appendChild(card);
+  initialItems.forEach(item => {
+    fragment.appendChild(createDiscoverCard(item));
   });
+  elements.discoverList.appendChild(fragment);
+
+  // Remaining items rendered on next idle frame to keep main thread completely free
+  if (catalog.length > INITIAL_BATCH) {
+    const remainingItems = catalog.slice(INITIAL_BATCH);
+    const renderRest = () => {
+      pendingDiscoverIdleId = null;
+      if (!elements.discoverList || appState.currentTab !== 'discover') return;
+      const restFragment = document.createDocumentFragment();
+      remainingItems.forEach(item => {
+        restFragment.appendChild(createDiscoverCard(item));
+      });
+      elements.discoverList.appendChild(restFragment);
+    };
+
+    if (window.requestIdleCallback) {
+      pendingDiscoverIdleId = window.requestIdleCallback(renderRest);
+    } else {
+      pendingDiscoverIdleId = setTimeout(renderRest, 30);
+    }
+  }
 }
 
 /**
- * Render 📰 Sports News Feed (FotMob, CREX, Official F1)
+ * Render 📰 Sports News Feed (FotMob, ESPNcricinfo/CREX, ESPN F1)
  */
 function renderNewsView() {
   if (!elements.newsList) return;
@@ -769,9 +946,11 @@ function renderNewsView() {
     }
   } else {
     elements.newsEmpty.style.display = 'none';
+    const fragment = document.createDocumentFragment();
     filtered.forEach(article => {
-      elements.newsList.appendChild(createNewsCard(article));
+      fragment.appendChild(createNewsCard(article));
     });
+    elements.newsList.appendChild(fragment);
   }
 }
 
@@ -914,8 +1093,8 @@ function renderFootballView() {
 
   // Sort leagues: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished
   activeLeagueGroups.sort((a, b) => {
-    const aRank = FotMobService.getLeagueSortRank(a);
-    const bRank = FotMobService.getLeagueSortRank(b);
+    const aRank = FootballService.getLeagueSortRank(a);
+    const bRank = FootballService.getLeagueSortRank(b);
     return bRank - aRank;
   });
 
@@ -1025,8 +1204,8 @@ function renderCricketView() {
 
   // Sort series: Popularity (live / finished / upcoming) -> Other Live -> Other Upcoming -> Other Finished
   activeSeriesGroups.sort((a, b) => {
-    const aRank = CrexService.getSeriesSortRank(a);
-    const bRank = CrexService.getSeriesSortRank(b);
+    const aRank = CricketService.getSeriesSortRank(a);
+    const bRank = CricketService.getSeriesSortRank(b);
     return bRank - aRank;
   });
 
@@ -1338,7 +1517,7 @@ function createFootballCard(m) {
       <div class="sport-badge">
         ${renderLeagueAvatar(leagueLogoUrl, m.leagueName, 'football', 'card-league-badge')}
         <span class="card-league-title">${m.leagueName || 'Football'}</span>
-        ${m.dateDisplay ? `<span style="font-size: 10px; color: #c084fc; margin-left: 2px; font-weight: 500;">• ${m.dateDisplay}</span>` : ''}
+        ${m.dateDisplay ? `<span style="font-size: 10px; color: var(--accent-purple-highlight); margin-left: 3px; font-weight: 600;">• ${m.dateDisplay}</span>` : ''}
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
         <span class="match-status-badge ${statusClass}">${m.timeDisplay || 'Upcoming'}</span>
@@ -1384,9 +1563,9 @@ function createFootballCard(m) {
     renderSettingsChips();
   });
 
-  // Card click opens the EXACT match page on FotMob
+  // Card click opens the match details page
   card.addEventListener('click', () => {
-    const targetUrl = m.matchUrl || m.fotmobUrl || `https://www.fotmob.com/match/${m.rawId}`;
+    const targetUrl = m.matchUrl || `https://www.google.com/search?q=${encodeURIComponent(m.home.name + ' vs ' + m.away.name + ' live score')}`;
     openTab(targetUrl);
   });
 
@@ -1434,8 +1613,8 @@ function createCricketCard(m) {
     } catch (_) {}
   }
 
-  // Target URL prioritizes exact match link on Cricinfo or CREX
-  const targetUrl = m.cricinfoUrl || m.matchUrl || m.crexUrl || 'https://www.espncricinfo.com';
+  // Target URL prioritizes direct match link
+  const targetUrl = m.matchUrl || m.cricinfoUrl || `https://www.google.com/search?q=${encodeURIComponent(m.matchTitle + ' cricket match score')}`;
 
   const t1OversText = formatCricketOvers(m.team1.overs);
   const t2OversText = formatCricketOvers(m.team2.overs);
@@ -1557,7 +1736,7 @@ function createCricketCard(m) {
     <div class="card-top-bar">
       <div class="sport-badge">
         ${renderLeagueAvatar(seriesLogoUrl, m.seriesName, 'cricket', 'card-league-badge')}
-        <span class="card-league-title">[${m.format}] ${m.matchTitle}</span>
+        <span class="card-league-title">${m.format && m.format !== 'Match' ? `[${m.format}] ` : ''}${m.matchTitle}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
         <span class="match-status-badge ${statusClass}">${cricketTimeDisplay}</span>
@@ -1694,9 +1873,11 @@ function renderSettingsChips() {
   if (fbFavs.length === 0) {
     elements.followedFbChips.innerHTML = '<span class="no-chips-hint">None</span>';
   } else {
+    const fragment = document.createDocumentFragment();
     fbFavs.forEach(team => {
-      elements.followedFbChips.appendChild(createChip('football', team));
+      fragment.appendChild(createChip('football', team));
     });
+    elements.followedFbChips.appendChild(fragment);
   }
 
   // Cricket chips
@@ -1705,9 +1886,11 @@ function renderSettingsChips() {
   if (crFavs.length === 0) {
     elements.followedCrChips.innerHTML = '<span class="no-chips-hint">None</span>';
   } else {
+    const fragment = document.createDocumentFragment();
     crFavs.forEach(team => {
-      elements.followedCrChips.appendChild(createChip('cricket', team));
+      fragment.appendChild(createChip('cricket', team));
     });
+    elements.followedCrChips.appendChild(fragment);
   }
 
   // F1 chips
@@ -1716,9 +1899,11 @@ function renderSettingsChips() {
   if (f1Favs.length === 0) {
     elements.followedF1Chips.innerHTML = '<span class="no-chips-hint">None</span>';
   } else {
+    const fragment = document.createDocumentFragment();
     f1Favs.forEach(team => {
-      elements.followedF1Chips.appendChild(createChip('f1', team));
+      fragment.appendChild(createChip('f1', team));
     });
+    elements.followedF1Chips.appendChild(fragment);
   }
 }
 
@@ -1781,14 +1966,8 @@ function startAutoRefreshCountdown() {
   appState.countdownTimer = setInterval(async () => {
     appState.refreshSecondsLeft--;
     if (appState.refreshSecondsLeft <= 0) {
-      triggerRefreshAnimation(true);
       resetRefreshTimer();
-      const fetchTask = fetchLiveScores(false);
-      await Promise.all([
-        fetchTask,
-        new Promise(r => setTimeout(r, 1700))
-      ]);
-      triggerRefreshAnimation(false);
+      await fetchLiveScores(false);
     } else {
       updateTimerBadge();
     }

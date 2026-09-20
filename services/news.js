@@ -1,26 +1,32 @@
 /**
- * ScoreQuick - Sports News Aggregator Service (v1.4)
- * Aggregates rich sports news directly from:
- * 1. ⚽ FotMob (World News API)
- * 2. 🏏 CREX (crex.live News & Top Stories)
- * 3. 🏎️ Official Formula 1 (F1 RSS & ESPN F1)
+ * ScoreQuick - Sports News Aggregator Service
+ * Aggregates rich sports news across Football, Cricket, and Formula 1.
  */
 
 export class NewsService {
   static STORAGE_KEY = 'scorequick_cached_news';
+  static CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache for news
+  static _memoryCache = null;
+  static _lastFetchTime = 0;
 
   /**
-   * Fetch all news across Football, Cricket, and F1
+   * Fetch all news across Football, Cricket, and F1.
+   * Throttled with 5-minute memory and storage cache so fast 10s score polling never stalls.
    */
-  static async fetchAllNews() {
+  static async fetchAllNews(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && this._memoryCache && (now - this._lastFetchTime < this.CACHE_TTL_MS)) {
+      return this._memoryCache;
+    }
+
     try {
-      const [fotmobResult, cricketResult, f1Result] = await Promise.allSettled([
-        this.fetchFotMobNews(),
+      const [footballResult, cricketResult, f1Result] = await Promise.allSettled([
+        this.fetchFootballNews(),
         this.fetchCricketNews(),
         this.fetchF1News()
       ]);
 
-      const footballNews = fotmobResult.status === 'fulfilled' ? fotmobResult.value : [];
+      const footballNews = footballResult.status === 'fulfilled' ? footballResult.value : [];
       const cricketNews = cricketResult.status === 'fulfilled' ? cricketResult.value : [];
       const f1News = f1Result.status === 'fulfilled' ? f1Result.value : [];
 
@@ -29,26 +35,33 @@ export class NewsService {
         return (b.timestamp || 0) - (a.timestamp || 0);
       });
 
-      // Cache for instant popup startup
-      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-        chrome.storage.local.set({ [this.STORAGE_KEY]: allNews });
-      }
-
-      return {
+      const result = {
         all: allNews,
         football: footballNews,
         cricket: cricketNews,
         f1: f1News
       };
+
+      this._memoryCache = result;
+      this._lastFetchTime = now;
+
+      // Cache for instant popup startup
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        chrome.storage.local.set({ [this.STORAGE_KEY]: allNews, scorequick_news_last_fetch: now });
+      }
+
+      return result;
     } catch (err) {
       console.error('Error in NewsService.fetchAllNews:', err);
       const cached = await this.getCachedNews();
-      return {
+      const result = {
         all: cached,
         football: cached.filter(n => n.sport === 'football'),
         cricket: cached.filter(n => n.sport === 'cricket'),
         f1: cached.filter(n => n.sport === 'f1')
       };
+      this._memoryCache = result;
+      return result;
     }
   }
 
@@ -67,9 +80,9 @@ export class NewsService {
   }
 
   /**
-   * 1. ⚽ FotMob World News
+   * 1. ⚽ Football World News
    */
-  static async fetchFotMobNews() {
+  static async fetchFootballNews() {
     try {
       const res = await fetch('https://www.fotmob.com/api/worldnews');
       if (!res.ok) return [];
@@ -86,7 +99,7 @@ export class NewsService {
         return {
           id: `fb_news_${item.id || Math.random()}`,
           sport: 'football',
-          source: item.sourceStr || 'FotMob',
+          source: item.sourceStr || 'Football Hub',
           title: decodeHtmlEntities(item.title || 'Football News'),
           lead: decodeHtmlEntities(item.lead || ''),
           url: articleUrl,
@@ -96,29 +109,29 @@ export class NewsService {
         };
       });
     } catch (err) {
-      console.warn('FotMob news fetch error:', err.message);
+      console.warn('Football news fetch error:', err.message);
       return [];
     }
   }
 
   /**
-   * 2. 🏏 ESPNcricinfo & CREX Cricket News Aggregator
+   * 2. 🏏 Cricket News Aggregator
    */
   static async fetchCricketNews() {
     try {
-      const [espnResult, crexResult] = await Promise.allSettled([
+      const [espnResult, liveResult] = await Promise.allSettled([
         this.fetchEspnCricketNews(),
-        this.fetchCrexNews()
+        this.fetchLiveCricketNews()
       ]);
 
       const espnNews = espnResult.status === 'fulfilled' ? espnResult.value : [];
-      const crexNews = crexResult.status === 'fulfilled' ? crexResult.value : [];
+      const liveNews = liveResult.status === 'fulfilled' ? liveResult.value : [];
 
       // Deduplicate by normalized headline
       const seen = new Set();
       const combined = [];
 
-      for (const item of [...espnNews, ...crexNews]) {
+      for (const item of [...espnNews, ...liveNews]) {
         if (!item || !item.title) continue;
         const norm = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
         if (seen.has(norm)) continue;
@@ -231,9 +244,9 @@ export class NewsService {
   }
 
   /**
-   * 2b. 🏏 CREX Cricket News (SSR Scraper with Sanitized High-Res Image URLs)
+   * 2b. 🏏 Live Cricket News Scraper
    */
-  static async fetchCrexNews() {
+  static async fetchLiveCricketNews() {
     try {
       const res = await fetch('https://crex.live/news');
       if (!res.ok) return [];
@@ -290,75 +303,79 @@ export class NewsService {
   }
 
   /**
-   * 3. 🏎️ Official Formula 1 News
+   * 3. 🏎️ Official ESPN Formula 1 News (Rich HD Images)
    */
   static async fetchF1News() {
-    const articles = [];
-
-    // A. Official F1 RSS
     try {
-      const res = await fetch('https://www.formula1.com/content/fom-website/en/latest/all.xml');
-      if (res.ok) {
-        const xml = await res.text();
-        const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-        let match;
-        let count = 0;
+      const urls = [
+        'https://site.api.espn.com/apis/site/v2/sports/racing/f1/news?limit=50',
+        'https://site.web.api.espn.com/apis/site/v2/sports/racing/f1/news?limit=50'
+      ];
 
-        while ((match = itemRegex.exec(xml)) !== null && count < 10) {
-          const chunk = match[1];
-          const rawTitle = (chunk.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || '';
-          const rawLink = (chunk.match(/<link>([\s\S]*?)<\/link>/i) || [])[1] || '';
-          const rawDesc = (chunk.match(/<description>([\s\S]*?)<\/description>/i) || [])[1] || '';
-          const rawPubDate = (chunk.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1] || '';
-
-          const title = decodeHtmlEntities(rawTitle.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1'));
-          const link = rawLink.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-          const lead = decodeHtmlEntities(rawDesc.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ''));
-          const timeMs = rawPubDate ? new Date(rawPubDate).getTime() : Date.now() - (count * 3600000);
-
-          if (title && link) {
-            articles.push({
-              id: `f1_news_${count}`,
-              sport: 'f1',
-              source: 'Formula 1',
-              title: title,
-              lead: lead,
-              url: link,
-              imageUrl: 'https://www.formula1.com/etc/designs/fom-website/icon192x192.png',
-              timestamp: timeMs,
-              timeDisplay: this.formatTimeAgo(timeMs)
-            });
-            count++;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('F1 RSS error:', e.message);
-    }
-
-    // B. Enrich with ESPN F1 images if available
-    try {
-      const espnRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/racing/f1/news');
-      if (espnRes.ok) {
-        const espnData = await espnRes.json();
-        for (const item of (espnData.articles || []).slice(0, 8)) {
-          const timeMs = item.published ? new Date(item.published).getTime() : Date.now();
-          articles.push({
-            id: `f1_news_espn_${item.id || Math.random()}`,
-            sport: 'f1',
-            source: 'Formula 1',
-            title: decodeHtmlEntities(item.headline || 'Formula 1 Update'),
-            lead: decodeHtmlEntities(item.description || ''),
-            url: item.links?.web?.href || 'https://www.formula1.com',
-            imageUrl: cleanImageUrl(item.images?.[0]?.url) || 'https://www.formula1.com/etc/designs/fom-website/icon192x192.png',
-            timestamp: timeMs,
-            timeDisplay: this.formatTimeAgo(timeMs)
+      let data = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
           });
+          if (res.ok) {
+            data = await res.json();
+            if (data?.articles && Array.isArray(data.articles) && data.articles.length > 0) {
+              break;
+            }
+          }
+        } catch (_) {
+          // Fallback to next endpoint
         }
       }
-    } catch (_) {}
 
-    return articles;
+      if (!data?.articles || !Array.isArray(data.articles)) {
+        return [];
+      }
+
+      const rawArticles = [];
+      for (const item of data.articles) {
+        if (!item || !item.headline) continue;
+
+        const timeMs = item.published ? new Date(item.published).getTime() : Date.now();
+        const rawImg = item.images?.[0]?.url || item.images?.find(i => i.url)?.url || '';
+        const img = cleanImageUrl(rawImg);
+        const articleUrl = item.links?.web?.href || item.links?.mobile?.href || 'https://www.espn.com/f1';
+        const categories = (item.categories || []).map(c => c.description).filter(Boolean);
+
+        rawArticles.push({
+          id: `f1_espn_${item.id || Math.random()}`,
+          sport: 'f1',
+          source: 'ESPN F1',
+          title: decodeHtmlEntities(item.headline),
+          lead: decodeHtmlEntities(item.description || ''),
+          url: articleUrl,
+          imageUrl: img,
+          timestamp: timeMs,
+          timeDisplay: this.formatTimeAgo(timeMs),
+          categories: categories
+        });
+      }
+
+      // Deduplicate by normalized title
+      const seen = new Set();
+      const unique = [];
+
+      for (const item of rawArticles) {
+        if (!item || !item.title) continue;
+        const norm = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+        if (seen.has(norm)) continue;
+        seen.add(norm);
+        unique.push(item);
+      }
+
+      // Sort newest first
+      unique.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      return unique.slice(0, 35);
+    } catch (err) {
+      console.warn('ESPN F1 News fetch error:', err);
+      return [];
+    }
   }
 
   /**
@@ -432,7 +449,7 @@ export class NewsService {
     });
 
     return articles.filter(article => {
-      const text = `${article.title || ''} ${article.lead || ''}`.toLowerCase();
+      const text = `${article.title || ''} ${article.lead || ''} ${(article.categories || []).join(' ')}`.toLowerCase();
       return keywords.some(keyword => {
         const regex = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i');
         return regex.test(text);

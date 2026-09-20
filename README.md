@@ -11,12 +11,13 @@
   [![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 
   <p align="center">
-    <strong>ScoreQuick</strong> is a lightning-fast, privacy-focused browser extension providing real-time live scores, comprehensive match centers, followed team hubs, and breaking sports news across <b>Football (FotMob)</b>, <b>Cricket (CREX & ESPNcricinfo)</b>, and <b>Formula 1 (Official F1)</b>.
+    <strong>ScoreQuick</strong> is a lightning-fast, privacy-focused browser extension providing real-time live scores, comprehensive match centers, followed team hubs, and breaking sports news across <b>Football</b>, <b>Cricket</b>, and <b>Formula 1</b>.
   </p>
 
   <p align="center">
     <a href="#-key-features">Key Features</a> •
     <a href="#-sports-coverage">Sports Coverage</a> •
+    <a href="#-data-sources--acknowledgements">Data Sources</a> •
     <a href="#-installation">Installation</a> •
     <a href="#-architecture--codebase">Architecture</a> •
     <a href="#-permissions--privacy">Permissions</a> •
@@ -30,41 +31,50 @@
 ## 🚀 Key Features
 
 - ⚡ **Unified Live Scoreboard**: Real-time scores and live match statuses for Football, Cricket, and Formula 1 in a single popup.
-- ⭐ **Personalized Followed Tab**: Follow your favorite clubs, cricket teams, tournaments, F1 drivers, and constructors.
-- 🕒 **Smart 24-Hour Feed Window**: Displays live matches, recently finished games (past 24h), and upcoming fixtures (next 24h) without clutter.
-- 📰 **Rich Sports News Feed**: Breaking headlines aggregated directly from **FotMob World News**, **ESPNcricinfo HD RSS Stories**, and **CREX News**.
-- 🔍 **Discover & Global Search**: Browse and search hundreds of popular clubs, international cricket teams, tournaments, and drivers.
-- 🏆 **High-Resolution Vector Crests**: Crisp official tournament and league vector logos for all major competitions.
-- 🔄 **Configurable Auto-Refresh**: Select from customizable refresh intervals (`10s`, `30s`, `1m`, `5m`) with smooth animated indicators.
+- ⭐ **Personalized Followed Tab**: Follow your favorite clubs, national teams, cricket franchises, tournaments, F1 drivers, and constructors.
+- 🕒 **Smart 4-Day Window Feed**: Displays live matches, yesterday's results, today's schedule, and upcoming fixtures (next 48h) seamlessly.
+- 📰 **Rich Sports News Feed**: Breaking headlines aggregated directly from global football news, HD cricket stories, and F1 updates with Followed team filters.
+- 🔍 **Discover & Global Search**: Browse and search top European & international football clubs, cricket nations & IPL teams, and F1 drivers/constructors.
+- 🏆 **High-Resolution Vector Crests**: Official tournament, league, and team badges for clean, modern presentation.
+- 🔄 **Configurable Auto-Refresh**: Customizable polling rates (`10s`, `30s`, `1m`) with smooth animated indicators and sub-second load times.
 - 🔔 **Instant Live Alerts & Badge**: Background polling with toolbar badge counters for live followed matches and desktop notifications.
-- 🌙 **Modern Glassmorphism Dark UI**: Compact, high-contrast dark theme engineered for fast glanceability.
+- 🌙 **Midnight Purple & Obsidian Dark UI**: Compact, high-contrast dark theme engineered for fast glanceability.
 
 ---
 
 ## 🏟️ Sports Coverage
 
-### ⚽ Football (FotMob Integration)
+### ⚽ Football Hub
 - **Live Match Centers**: Real-time match minute, live scores, halftime/fulltime scores, penalty shootouts, and aggregate scores.
-- **Competitions Covered**: Premier League, UEFA Champions League, LaLiga, Serie A, Bundesliga, Ligue 1, Europa League, MLS, Saudi Pro League, and global domestic cups.
-- **Verified Club Crests**: High-resolution team and league badges rendered directly from FotMob CDN.
-- **Deep Links**: Direct 1-click navigation to FotMob match centers and live ticker commentary.
+- **Competitions Covered**: Premier League, UEFA Champions League, LaLiga, Serie A, Bundesliga, Ligue 1, Europa League, MLS, Saudi Pro League, Indian Super League (ISL), and international tournaments.
+- **Verified Crests**: High-resolution club crests and competition badges.
+- **Direct Match Links**: Fast 1-click navigation to match details and live commentary.
 
-### 🏏 Cricket (CREX & ESPNcricinfo Dual-Feed Engine)
-- **Ball-by-Ball Accuracy**: Live runs, wickets, current overs, innings indicators (`batting` vs `bowling`), required run rates, and match situations.
-- **Dual-Feed Redundancy**: Combines **CREX** real-time scraper with **ESPNcricinfo** scorepanels for 100% uptime.
-- **Official Tournament Logos**: Dedicated vector crests for **IPL**, **WPL**, **BBL**, **PSL**, **SA20**, **CPL**, **The Hundred**, **MLC**, **ILT20**, **LPL**, **Ranji Trophy**, **County Championship**, **Ashes**, **WTC**, and all **ICC World Cups**.
-- **Unified Series Grouping**: Groups matches by canonical tournament name with dynamic series vector badges.
+### 🏏 Cricket Hub
+- **Ball-by-Ball Accuracy**: Live runs, wickets, current overs, striker/non-striker on crease, bowler figures, and target situations.
+- **Dual-Feed Redundancy**: Redundant live data architecture for high availability and zero downtime.
+- **Official Tournament Crests**: Dedicated vector crests for **IPL**, **WPL**, **BBL**, **PSL**, **SA20**, **CPL**, **The Hundred**, **MLC**, **ILT20**, **LPL**, **Ranji Trophy**, **County Championship**, **Ashes**, **WTC**, and all **ICC World Cups**.
+- **Unified Series Grouping**: Groups matches by canonical tournament name with dynamic series badges.
 
-### 🏎️ Formula 1 (Official F1 & Jolpi CA Integration)
+### 🏎️ Formula 1 Hub
 - **Race Weekend Schedule**: Live countdown and exact local start times for Practice sessions (FP1, FP2, FP3), Sprint Qualifying, Sprint, Qualifying, and Grand Prix Main Race.
 - **Previous Grand Prix Results**: Podium finishers (P1, P2, P3), pole position setter, and fastest lap holder.
 - **Championship Standings**: Real-time Driver & Constructor championship leaderboards with official team colors.
 
-### 📰 Sports News Aggregator
-- **ESPNcricinfo HD Stories**: Verified picture enclosures from `img1.hscicdn.com` and `p.imgci.com`.
-- **CREX Top Stories**: Sanitized Google Cloud Storage news images with automatic entity decoding.
-- **FotMob World News**: Global football breaking news with lead paragraphs and publication timestamps.
-- **Followed News Filtering**: Filter news stories mentioning only the clubs, cricket teams, or drivers you follow.
+---
+
+## 🌐 Data Sources & Acknowledgements
+
+ScoreQuick aggregates open and public sports feeds to deliver real-time data:
+
+| Sport / Feature | Underlying Provider & Source APIs |
+| :--- | :--- |
+| **Football Scores & News** | **FotMob API & ESPN Soccer** (Real-time fixtures, live minute, club badges & world news) |
+| **Cricket Scores & Over Telemetry** | **CREX & ESPNcricinfo** (Live ball-by-ball commentary, match scorepanels & HD cover images) |
+| **Formula 1 Schedule & Standings** | **Official Formula 1 Live Timing, Ergast / Jolpica API & ESPN F1** (Grand Prix weekends, driver/constructor standings & news) |
+| **Tournament Vector Crests** | **Akamai Cricket Vectors, ESPN CDN & Official Sport CDNs** |
+
+*All product names, logos, and brands are property of their respective owners. Their mention here is solely for informational and source attribution purposes.*
 
 ---
 
@@ -74,7 +84,7 @@
 ScoreQuick/
 ├── 📄 manifest.json             # Manifest V3 Extension configuration
 ├── 📄 background.js            # Background service worker (polling & badge alarms)
-├── 📄 README.md                # Project documentation
+├── 📄 README.md                # Project documentation & data source attributions
 ├── 📁 icons/                   # Extension icons (16px, 48px, 128px)
 │   ├── icon16.png
 │   ├── icon48.png
@@ -84,11 +94,11 @@ ScoreQuick/
 │   ├── popup.css              # Glassmorphic dark styling & animations
 │   └── popup.js               # Reactive UI controller & rendering engine
 └── 📁 services/                # Modular API integration layer
-    ├── fotmob.js              # FotMob world news & football live match scraper
-    ├── crex.js                # CREX & ESPNcricinfo cricket match aggregator
-    ├── f1.js                  # Formula 1 schedule, timing, and standings API
+    ├── football.js            # Football live match scores, standings & league sorting
+    ├── cricket.js             # Cricket multi-feed aggregator & ball-by-ball telemetry
+    ├── f1.js                  # Formula 1 schedule, timing, and standings engine
     ├── news.js                # Multi-sport rich news aggregation service
-    ├── favorites.js           # Followed teams/leagues catalog & fuzzy matching
+    ├── favorites.js           # Followed teams catalog, fuzzy matching & verified crests
     └── notifications.js       # Background badge counts & desktop alerts
 ```
 
@@ -139,7 +149,7 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
   - `fotmob.com` (Football fixtures and world news)
   - `crex.live` & `crickapi.com` (Cricket live scoreboards)
   - `espncricinfo.com` & `espncdn.com` (Cricket scorepanels, HD news images, crests)
-  - `formula1.com` & `jolpi.ca` (Official F1 weekend schedules and driver standings)
+  - `formula1.com` & `jolpi.ca` (Formula 1 weekend schedules and driver standings)
   - `cricketvectors.akamaized.net` (High-resolution tournament vector badges)
 
 ---

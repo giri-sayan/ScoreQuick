@@ -1,17 +1,21 @@
 /**
- * ScoreQuick - FotMob Football Service
- * Fetches real-time scores, live match minutes, and league tables from FotMob.
+ * ScoreQuick - Football Match & Scores Service
+ * Fetches real-time scores, live match minutes, league groups, and standings.
  */
 
 import { FavoritesService } from './favorites.js';
 
-export class FotMobService {
+export class FootballService {
+  static _cachedSurroundingDays = null;
+  static _lastSurroundingFetch = 0;
+  static SURROUNDING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache for yesterday/tomorrow/day-after
+
   /**
-   * Fetches matches directly from FotMob across a 4-day window:
+   * Fetches matches across a 4-day window:
    * yesterday (-24h finished), today (live/recent), tomorrow (+24h), and day-after (+48h).
-   * Guarantees all followed teams have their latest and upcoming matches up to date.
+   * Throttles non-today dates with 5-minute cache so fast 10s live polls only fetch today.
    */
-  static async fetchMatches(dateStr = null) {
+  static async fetchMatches(dateStr = null, forceFull = false) {
     if (dateStr) {
       return await this.fetchSingleDate(dateStr);
     }
@@ -19,41 +23,77 @@ export class FotMobService {
     try {
       const fmt = dt => dt.toISOString().slice(0, 10).replace(/-/g, '');
       const now = new Date();
+      const todayStr = fmt(now);
+      const nowMs = Date.now();
+
+      // If surrounding days are fresh, only fetch today's live matches for maximum speed (<100ms)
+      if (!forceFull && this._cachedSurroundingDays && (nowMs - this._lastSurroundingFetch < this.SURROUNDING_CACHE_TTL)) {
+        try {
+          const todayRaw = await this.fetchSingleDateRaw(todayStr);
+          if (todayRaw && todayRaw.leagues) {
+            return this.mergeMultiDayMatches([...this._cachedSurroundingDays, todayRaw]);
+          }
+        } catch (_) {
+          // Fall back to full fetch if single today fetch fails
+        }
+      }
+
       const dates = [
         fmt(new Date(now.getTime() - 86400000)), // yesterday
-        fmt(now),                                // today
+        todayStr,                                // today
         fmt(new Date(now.getTime() + 86400000)), // tomorrow
         fmt(new Date(now.getTime() + 172800000)) // day after (+48h)
       ];
 
-      // Fetch today and upcoming dates concurrently
+      // Fetch today and upcoming dates concurrently with timeout protection
       const settled = await Promise.allSettled(dates.map(d => this.fetchSingleDateRaw(d)));
       const rawDays = settled
         .filter(s => s.status === 'fulfilled' && s.value && s.value.leagues)
         .map(s => s.value);
 
       if (rawDays.length === 0) {
-        throw new Error('All FotMob date fetches failed');
+        throw new Error('All football date fetches failed');
+      }
+
+      // Cache surrounding non-today days
+      const surrounding = [];
+      settled.forEach((s, idx) => {
+        if (s.status === 'fulfilled' && s.value && s.value.leagues && dates[idx] !== todayStr) {
+          surrounding.push(s.value);
+        }
+      });
+      if (surrounding.length > 0) {
+        this._cachedSurroundingDays = surrounding;
+        this._lastSurroundingFetch = nowMs;
       }
 
       // Merge raw days into unified leagues & match collections
       return this.mergeMultiDayMatches(rawDays);
     } catch (err) {
-      console.warn('Primary FotMob multi-day fetch failed, attempting ESPN soccer fallback:', err.message);
+      console.warn('Primary football multi-day fetch failed, attempting fallback:', err.message);
       return await this.fetchEspnFallback();
     }
   }
 
   static async fetchSingleDateRaw(dateStr) {
     const url = `https://www.fotmob.com/api/data/matches?date=${dateStr}`;
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    if (!response.ok) throw new Error(`FotMob HTTP ${response.status}`);
-    return await response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
   }
 
   static async fetchSingleDate(dateStr) {
@@ -66,7 +106,7 @@ export class FotMobService {
   }
 
   /**
-   * Merges multiple FotMob day payloads, deduplicating matches by match ID.
+   * Merges multiple day payloads, deduplicating matches by match ID.
    */
   static mergeMultiDayMatches(daysPayloads) {
     const leagueMap = new Map();
@@ -95,7 +135,7 @@ export class FotMobService {
   }
 
   /**
-   * Normalizes FotMob response into a clean, uniform match array and league groups.
+   * Normalizes response into a clean, uniform match array and league groups.
    */
   static normalizeMatches(data) {
     const leagues = data.leagues || [];
@@ -108,6 +148,7 @@ export class FotMobService {
 
       const leagueId = league.id || league.primaryId;
       const leagueLogo = (leagueId ? `https://images.fotmob.com/image_resources/logo/leaguelogo/${leagueId}.png` : '') || FavoritesService.getFootballLeagueLogo(league.name, leagueId);
+
       const group = {
         leagueId: leagueId,
         leagueName: league.name,
@@ -214,8 +255,7 @@ export class FotMobService {
             logo: m.away?.id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${m.away.id}.png` : ''
           },
           statusText: isLive ? timeDisplay : (isFinished ? (dateDisplay ? `Full Time (${dateDisplay})` : 'Full Time') : `Starts at ${timeDisplay}`),
-          matchUrl: `https://www.fotmob.com/match/${m.id}`,
-          fotmobUrl: `https://www.fotmob.com/match/${m.id}`
+          matchUrl: `https://www.fotmob.com/match/${m.id}`
         };
 
         group.matches.push(matchObj);
@@ -362,7 +402,7 @@ export class FotMobService {
   }
 
   /**
-   * ESPN Fallback if FotMob API is unreachable
+   * ESPN Fallback if primary football API is unreachable
    */
   static async fetchEspnFallback() {
     try {
@@ -432,7 +472,7 @@ export class FotMobService {
               logo: away?.team?.logo || ''
             },
             statusText: ev.status?.type?.shortDetail || '',
-            fotmobUrl: `https://www.google.com/search?q=${encodeURIComponent(ev.name + ' soccer score')}`
+            matchUrl: `https://www.google.com/search?q=${encodeURIComponent(ev.name + ' soccer score')}`
           };
 
           group.matches.push(matchObj);
@@ -453,7 +493,7 @@ export class FotMobService {
         liveCount: liveMatches.length
       };
     } catch (e) {
-      console.error('ESPN fallback error:', e);
+      console.error('Football fallback error:', e);
       return { sport: 'football', allMatches: [], liveMatches: [], leagues: [], liveCount: 0 };
     }
   }

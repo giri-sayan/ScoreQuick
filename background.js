@@ -4,8 +4,8 @@
  * and desktop notifications strictly for followed teams and drivers.
  */
 
-import { FotMobService } from './services/fotmob.js';
-import { CrexService } from './services/crex.js';
+import { FootballService } from './services/football.js';
+import { CricketService } from './services/cricket.js';
 import { F1Service } from './services/f1.js';
 import { FavoritesService } from './services/favorites.js';
 import { NotificationService } from './services/notifications.js';
@@ -102,8 +102,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function refreshScores(forceBroadcast = false) {
   try {
     const [fbResult, crResult, f1Result, favsResult] = await Promise.allSettled([
-      FotMobService.fetchMatches(),
-      CrexService.fetchMatches(),
+      FootballService.fetchMatches(),
+      CricketService.fetchMatches(),
       F1Service.fetchF1Data(),
       FavoritesService.getFavorites()
     ]);

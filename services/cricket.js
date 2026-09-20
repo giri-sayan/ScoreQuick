@@ -1,5 +1,5 @@
 /**
- * ScoreQuick - Cricket Service (ESPNcricinfo & CREX)
+ * ScoreQuick - Cricket Service
  * Fetches real-time cricket matches, live ball-by-ball scores, overs, and series.
  * Enriches active matches with current over balls, previous over balls, batsmen on crease, bowler figures, and target situations.
  */
@@ -42,27 +42,31 @@ function parseScoreAndOvers(scoreField, overField) {
   return { score, overs };
 }
 
-export class CrexService {
+export class CricketService {
+  static _cachedSurroundingEspn = null;
+  static _lastSurroundingFetch = 0;
+  static SURROUNDING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache for yesterday/tomorrow/day-after
+
   static async fetchMatches() {
     try {
-      const [crexResult, espnResult] = await Promise.allSettled([
-        this.fetchCrexState(),
+      const [primaryResult, espnResult] = await Promise.allSettled([
+        this.fetchLiveState(),
         this.fetchEspnMultiDay()
       ]);
 
-      const crexMatches = crexResult.status === 'fulfilled' ? crexResult.value : [];
+      const primaryMatches = primaryResult.status === 'fulfilled' ? primaryResult.value : [];
       const espnMatches = espnResult.status === 'fulfilled' ? espnResult.value : [];
 
-      const allMatches = this.mergeCricketMatches(crexMatches, espnMatches);
+      const allMatches = this.mergeCricketMatches(primaryMatches, espnMatches);
 
-      // Parallel enrichment for active matches (ball feeds, current over, crease batsmen & bowler)
-      const enrichList = allMatches.filter(m => m.isLive || (m.isFinished && m.id.startsWith('cr_crex_')));
+      // Parallel enrichment strictly for active LIVE matches (up to 4)
+      const enrichList = allMatches.filter(m => m.isLive);
       if (enrichList.length > 0) {
         await Promise.allSettled(
-          enrichList.slice(0, 10).map(async m => {
+          enrichList.slice(0, 4).map(async m => {
             try {
-              if (m.id.startsWith('cr_crex_')) {
-                const en = await this.enrichCrexMatch(m.rawId);
+              if (m.id.startsWith('cr_crex_') || m.id.startsWith('cr_live_')) {
+                const en = await this.enrichMatch(m.rawId);
                 if (en) {
                   Object.assign(m, en);
                   if (en.team1Overs && !m.team1.overs) m.team1.overs = en.team1Overs;
@@ -156,7 +160,7 @@ export class CrexService {
         liveCount: liveMatches.length
       };
     } catch (err) {
-      console.error('Error in CrexService.fetchMatches:', err);
+      console.error('Error in CricketService.fetchMatches:', err);
       return { sport: 'cricket', allMatches: [], liveMatches: [], series: [], liveCount: 0 };
     }
   }
@@ -233,7 +237,7 @@ export class CrexService {
     return 500;
   }
 
-  static async enrichCrexMatch(matchKey) {
+  static async enrichMatch(matchKey) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -422,23 +426,27 @@ export class CrexService {
     }
   }
 
-  static async fetchCrexState() {
+  static async fetchLiveState() {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const res = await fetch('https://crex.live', {
-        headers: { 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
+        headers: { 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       if (!res.ok) return [];
 
       const html = await res.text();
 
       const matchHrefRegex = /href="(\/(?:cricket-live-score|scoreboard)\/[^"]+)"/g;
-      const crexLinkMap = new Map();
+      const liveLinkMap = new Map();
       let matchLink;
       while ((matchLink = matchHrefRegex.exec(html)) !== null) {
         const link = matchLink[1];
         const keyMatch = link.match(/-([a-zA-Z0-9]+)$/) || link.match(/\/([a-zA-Z0-9]+)$/);
         if (keyMatch) {
-          crexLinkMap.set(keyMatch[1], 'https://crex.live' + link);
+          liveLinkMap.set(keyMatch[1], 'https://crex.live' + link);
         }
       }
 
@@ -550,17 +558,16 @@ export class CrexService {
           } catch (_) {}
         }
 
-        const crexUrl = crexLinkMap.get(matchKey) || `https://crex.live/scoreboard/${matchKey}`;
+        const liveMatchUrl = liveLinkMap.get(matchKey) || `https://crex.live/scoreboard/${matchKey}`;
         const rawSName = m.sfullname || m.sname || sInfo.n || sInfo.sn || 'Cricket Tournament';
         const sName = decodeHtmlEntities(rawSName);
-        const sVectorLogo = sInfo.f_key ? `https://cricketvectors.akamaized.net/Series/${sInfo.f_key}.png` : '';
 
         matches.push({
-          id: `cr_crex_${matchKey}`,
+          id: `cr_live_${matchKey}`,
           rawId: matchKey,
           sport: 'cricket',
           seriesName: sName,
-          seriesLogo: sVectorLogo || FavoritesService.getTournamentLogo(sName) || FavoritesService.getCricketLogo(sName) || '',
+          seriesLogo: FavoritesService.getTournamentLogo(sName) || FavoritesService.getCricketLogo(sName) || 'https://a.espncdn.com/i/leaguelogos/cricket/500/8048.png',
           format: m.fo || m.format || 'Match',
           matchTitle: `${team1Short} vs ${team2Short}`,
           venue: m.vname || '',
@@ -572,8 +579,7 @@ export class CrexService {
           statusText: statusDisplay,
           situation: m.a || statusDisplay,
           target: m.target || null,
-          matchUrl: crexUrl,
-          crexUrl: crexUrl,
+          matchUrl: liveMatchUrl,
           team1: {
             name: team1Name || 'Team 1',
             shortName: team1Short,
@@ -602,13 +608,33 @@ export class CrexService {
   /**
    * Fetches matches across a 4-day cricket window:
    * yesterday (-24h finished), today (live/recent), tomorrow (+24h), and day-after (+48h).
+   * Caches surrounding non-today days for 5 minutes so rapid live polls only fetch today's matches.
    */
   static async fetchEspnMultiDay() {
     const fmt = dt => dt.toISOString().slice(0, 10).replace(/-/g, '');
     const now = new Date();
+    const todayStr = fmt(now);
+    const nowMs = Date.now();
+
+    // Fast path: If surrounding days are fresh, only fetch today
+    if (this._cachedSurroundingEspn && (nowMs - this._lastSurroundingFetch < this.SURROUNDING_CACHE_TTL)) {
+      try {
+        const todayMatches = await this.fetchEspnScorepanel(todayStr);
+        const merged = [...todayMatches];
+        const seen = new Set(todayMatches.map(m => m.id));
+        for (const m of this._cachedSurroundingEspn) {
+          if (!seen.has(m.id)) {
+            seen.add(m.id);
+            merged.push(m);
+          }
+        }
+        return merged;
+      } catch (_) {}
+    }
+
     const dates = [
       fmt(new Date(now.getTime() - 86400000)), // yesterday
-      fmt(now),                                // today
+      todayStr,                                // today
       fmt(new Date(now.getTime() + 86400000)), // tomorrow
       fmt(new Date(now.getTime() + 172800000)) // day after (+48h)
     ];
@@ -618,17 +644,27 @@ export class CrexService {
     );
 
     const allEspnMatches = [];
+    const surroundingMatches = [];
     const seenIds = new Set();
-    for (const res of settled) {
+    settled.forEach((res, idx) => {
       if (res.status === 'fulfilled' && Array.isArray(res.value)) {
         for (const m of res.value) {
           if (!seenIds.has(m.id)) {
             seenIds.add(m.id);
             allEspnMatches.push(m);
           }
+          if (dates[idx] !== todayStr) {
+            surroundingMatches.push(m);
+          }
         }
       }
+    });
+
+    if (surroundingMatches.length > 0) {
+      this._cachedSurroundingEspn = surroundingMatches;
+      this._lastSurroundingFetch = nowMs;
     }
+
     return allEspnMatches;
   }
 
@@ -637,7 +673,10 @@ export class CrexService {
       const url = dateStr
         ? `https://site.web.api.espn.com/apis/site/v2/sports/cricket/scorepanel?dates=${dateStr}`
         : 'https://site.web.api.espn.com/apis/site/v2/sports/cricket/scorepanel';
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+      clearTimeout(timeoutId);
       if (!res.ok) return [];
 
       const data = await res.json();
@@ -749,7 +788,6 @@ export class CrexService {
             situation: ev.status?.summary || statusText,
             target: matchTarget,
             matchUrl: cricinfoUrl,
-            crexUrl: 'https://crex.live',
             cricinfoUrl: cricinfoUrl,
             team1: {
               name: t1DisplayName,
@@ -779,10 +817,10 @@ export class CrexService {
     }
   }
 
-  static mergeCricketMatches(crexMatches, espnMatches) {
-    const combined = [...crexMatches];
+  static mergeCricketMatches(primaryMatches, espnMatches) {
+    const combined = [...primaryMatches];
     const existingIndexMap = new Map();
-    crexMatches.forEach((m, idx) => {
+    primaryMatches.forEach((m, idx) => {
       const k1 = `${(m.team1.shortName || m.team1.name || '').toLowerCase()}_${(m.team2.shortName || m.team2.name || '').toLowerCase()}`;
       existingIndexMap.set(k1, idx);
     });
@@ -829,4 +867,3 @@ function decodeHtmlEntities(str) {
     .replace(/&nbsp;/g, ' ')
     .trim();
 }
-
