@@ -88,14 +88,17 @@
       <!-- Tab 1: 🔍 Discover Tab (Choose Sport, Search & Follow Teams) -->
       <section id="tab-discover" class="tab-view active">
         <div class="tab-subbar">
-          <div class="filter-pills">
+          <div class="filter-pills" id="discover-sport-pills">
             <button class="pill active" data-disc-sport="all">All</button>
-            <button class="pill" data-disc-sport="leagues">🏆 Leagues</button>
             <button class="pill" data-disc-sport="football">⚽ Football</button>
             <button class="pill" data-disc-sport="cricket">🏏 Cricket</button>
             <button class="pill" data-disc-sport="f1">🏎️ F1</button>
           </div>
           <span class="source-tag count-tag-purple" id="discover-count-tag">0 Items</span>
+        </div>
+
+        <div class="discover-subbar" id="discover-category-subbar">
+          <div class="filter-pills sub-filter-pills" id="discover-subfilter-pills"></div>
         </div>
 
         <div class="discover-search-box">
@@ -105,7 +108,7 @@
         <div id="discover-list" class="discover-grid"></div>
       </section>
 
-      <!-- Tab 2: 📰 Multi-Sport News Feed (FotMob, ESPNcricinfo, CREX, Official F1) -->
+      <!-- Tab 2: 📰 Multi-Sport News Feed (FotMob, ESPNcricinfo, CREX, ESPN F1) -->
       <section id="tab-news" class="tab-view">
         <div class="tab-subbar">
           <div class="filter-pills" id="news-filter-pills">

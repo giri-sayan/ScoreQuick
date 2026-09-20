@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ScoreQuick - Live Scores (FotMob, CREX & F1)",
+  "name": "ScoreQuick - Fastest Live Stats",
   "version": "1.2.0",
   "description": "Real-time live scores for Football (FotMob), Cricket (CREX) & Formula 1 (Official F1). Follow your favorite teams & drivers with unified feeds and instant alerts.",
   "action": {
@@ -36,10 +36,16 @@
     "https://*.hscicdn.com/*",
     "https://*.imgci.com/*",
     "https://cricketvectors.akamaized.net/*",
+    "https://documents.iplt20.com/*",
+    "https://scores.iplt20.com/*",
     "https://storage.googleapis.com/*",
     "https://livetiming.formula1.com/*",
     "https://*.formula1.com/*",
-    "https://api.jolpi.ca/*"
+    "https://api.jolpi.ca/*",
+    "https://*.crash.net/*",
+    "https://*.bbci.co.uk/*",
+    "https://*.bbc.co.uk/*",
+    "https://*.bbc.com/*"
   ],
   "icons": {
     "16": "icons/icon16.png",

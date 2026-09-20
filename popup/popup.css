@@ -401,6 +401,50 @@ body {
 /* ==========================================================================
    Discover Tab UI
    ========================================================================== */
+.discover-subbar {
+  margin-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+
+.discover-subbar::-webkit-scrollbar {
+  display: none;
+}
+
+.sub-filter-pills {
+  display: flex;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+.sub-filter-pills .pill {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sub-filter-pills .pill:hover {
+  background: var(--bg-card-hover);
+  color: #ffffff;
+  border-color: var(--border-hover);
+}
+
+.sub-filter-pills .pill.active {
+  background: var(--accent-purple-subtle);
+  color: var(--accent-purple-highlight);
+  border-color: var(--accent-purple);
+  font-weight: 600;
+}
+
 .discover-search-box {
   margin-bottom: 8px;
 }

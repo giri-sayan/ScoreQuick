@@ -18,7 +18,8 @@ import { NewsService } from '../services/news.js';
 let appState = {
   currentTab: 'discover',
   searchQuery: '',
-  discoverSport: 'all',  // 'all' | 'leagues' | 'football' | 'cricket' | 'f1'
+  discoverSport: 'all',      // 'all' | 'football' | 'cricket' | 'f1'
+  discoverCategory: 'all',   // 'all' | 'clubs' | 'intl' | 'leagues' | 'drivers' | 'constructors' | 'franchises'
   discoverQuery: '',
   newsFilter: 'followed', // 'followed' | 'all' | 'football' | 'cricket' | 'f1'
   newsQuery: '',
@@ -170,6 +171,8 @@ function setupEventListeners() {
       document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       appState.discoverSport = btn.dataset.discSport;
+      appState.discoverCategory = 'all';
+      renderDiscoverSubfilters();
       saveTabState();
       renderDiscoverView();
     });
@@ -331,6 +334,67 @@ function switchTab(tabName) {
   saveTabState();
 }
 
+function getSubfiltersForSport(sport) {
+  switch (sport) {
+    case 'football':
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'clubs', label: '🛡️ Clubs' },
+        { id: 'intl', label: '🌍 National Teams' },
+        { id: 'leagues', label: '🏆 Leagues' }
+      ];
+    case 'cricket':
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'intl', label: '🌍 International' },
+        { id: 'franchises', label: '🛡️ Franchises / Teams' },
+        { id: 'leagues', label: '🏆 Tournaments' }
+      ];
+    case 'f1':
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'drivers', label: '🏎️ Drivers' },
+        { id: 'constructors', label: '🏁 Constructors' }
+      ];
+    case 'all':
+    default:
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'clubs', label: '🛡️ Clubs & Franchises' },
+        { id: 'intl', label: '🌍 National Teams' },
+        { id: 'leagues', label: '🏆 Leagues & Tournaments' },
+        { id: 'drivers', label: '🏎️ Drivers' },
+        { id: 'constructors', label: '🏁 Constructors' }
+      ];
+  }
+}
+
+function renderDiscoverSubfilters() {
+  const container = document.getElementById('discover-subfilter-pills');
+  if (!container) return;
+
+  const filters = getSubfiltersForSport(appState.discoverSport);
+  if (!filters.some(f => f.id === appState.discoverCategory)) {
+    appState.discoverCategory = 'all';
+  }
+
+  container.innerHTML = '';
+  filters.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = `pill ${appState.discoverCategory === f.id ? 'active' : ''}`;
+    btn.dataset.discCat = f.id;
+    btn.textContent = f.label;
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appState.discoverCategory = f.id;
+      saveTabState();
+      renderDiscoverView();
+    });
+    container.appendChild(btn);
+  });
+}
+
 /**
  * Persist current tab + subtab filters to session storage so the popup
  * reopens on the same view within the same browser session.
@@ -339,6 +403,7 @@ function saveTabState() {
   const stateObj = {
     currentTab: appState.currentTab,
     discoverSport: appState.discoverSport,
+    discoverCategory: appState.discoverCategory,
     newsFilter: appState.newsFilter,
     footballFilter: appState.footballFilter,
     cricketFilter: appState.cricketFilter
@@ -367,8 +432,11 @@ async function restoreTabState() {
         elements.tabViews.forEach(v => v.classList.toggle('active', v.id === `tab-${saved.currentTab}`));
 
         if (saved.discoverSport) {
-          appState.discoverSport = saved.discoverSport;
-          document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.toggle('active', b.dataset.discSport === saved.discoverSport));
+          appState.discoverSport = saved.discoverSport === 'leagues' ? 'all' : saved.discoverSport;
+          document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.toggle('active', b.dataset.discSport === appState.discoverSport));
+        }
+        if (saved.discoverCategory) {
+          appState.discoverCategory = saved.discoverCategory;
         }
         if (saved.newsFilter) {
           appState.newsFilter = saved.newsFilter;
@@ -388,6 +456,7 @@ async function restoreTabState() {
         elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'discover'));
         elements.tabViews.forEach(v => v.classList.toggle('active', v.id === 'tab-discover'));
       }
+      renderDiscoverSubfilters();
       resolve();
     };
 
@@ -634,6 +703,7 @@ function renderDiscoverView() {
   const crSeries = appState.cricketData?.series || [];
   let catalog = FavoritesService.getDiscoverableItems(
     appState.discoverSport, 
+    appState.discoverCategory,
     fbMatches, 
     crMatches, 
     appState.f1Data, 
@@ -670,7 +740,7 @@ function renderDiscoverView() {
     if (item.isLeague) {
       subtitle = item.sport === 'football' ? '🏆 Football League' : '🏆 Cricket Tournament';
     } else if (item.sport === 'football') {
-      subtitle = item.league || 'Football Club';
+      subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Club');
     } else if (item.sport === 'cricket') {
       subtitle = item.category || 'Cricket Team';
     } else if (item.sport === 'f1') {
@@ -694,7 +764,7 @@ function renderDiscoverView() {
       }
     } else {
       const sportKey = item.sport === 'cricket' ? 'cr' : 'fb';
-      const logoUrl = item.logo || (item.sport === 'cricket' ? FavoritesService.getCricketLogo(item.name, item.shortName) : '');
+      const logoUrl = item.logo || (item.sport === 'cricket' ? FavoritesService.getCricketLogo(item.name, item.shortName) : FavoritesService.getFootballLogo(item.name, item.shortName, item.id));
       avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, sportKey);
     }
 
@@ -726,7 +796,7 @@ function renderDiscoverView() {
 }
 
 /**
- * Render 📰 Sports News Feed (FotMob, CREX, Official F1)
+ * Render 📰 Sports News Feed (FotMob, ESPNcricinfo/CREX, ESPN F1)
  */
 function renderNewsView() {
   if (!elements.newsList) return;

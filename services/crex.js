@@ -553,14 +553,13 @@ export class CrexService {
         const crexUrl = crexLinkMap.get(matchKey) || `https://crex.live/scoreboard/${matchKey}`;
         const rawSName = m.sfullname || m.sname || sInfo.n || sInfo.sn || 'Cricket Tournament';
         const sName = decodeHtmlEntities(rawSName);
-        const sVectorLogo = sInfo.f_key ? `https://cricketvectors.akamaized.net/Series/${sInfo.f_key}.png` : '';
 
         matches.push({
           id: `cr_crex_${matchKey}`,
           rawId: matchKey,
           sport: 'cricket',
           seriesName: sName,
-          seriesLogo: sVectorLogo || FavoritesService.getTournamentLogo(sName) || FavoritesService.getCricketLogo(sName) || '',
+          seriesLogo: FavoritesService.getTournamentLogo(sName) || FavoritesService.getCricketLogo(sName) || 'https://a.espncdn.com/i/leaguelogos/cricket/500/8048.png',
           format: m.fo || m.format || 'Match',
           matchTitle: `${team1Short} vs ${team2Short}`,
           venue: m.vname || '',
