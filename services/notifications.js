@@ -3,14 +3,36 @@
  * Compares match states and dispatches native browser notifications for goals, wickets, and match outcomes.
  */
 
+import { FootballService } from './football.js';
+
 export class NotificationService {
   static NOTIFICATION_CACHE_KEY = 'scorequick_match_cache';
+  static NOTIFICATION_ENABLED_KEY = 'scorequick_notifications_enabled';
+
+  /**
+   * Check whether desktop notifications are enabled by the user in settings.
+   * Defaults to true if not explicitly set to false.
+   */
+  static async isNotificationsEnabled() {
+    return new Promise(resolve => {
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        chrome.storage.local.get([this.NOTIFICATION_ENABLED_KEY], res => {
+          resolve(res?.[this.NOTIFICATION_ENABLED_KEY] !== false);
+        });
+      } else {
+        resolve(true);
+      }
+    });
+  }
 
   /**
    * Compare previous matches state with new matches state and trigger notifications for followed teams
    */
   static async checkAndNotify(currentFollowedMatches = []) {
     if (typeof chrome === 'undefined' || !chrome.notifications) return;
+
+    // Strictly check if notifications are enabled by the user
+    const isEnabled = await this.isNotificationsEnabled();
 
     // Retrieve previous cached state
     const cachedState = await this.getCachedMatches();
@@ -30,6 +52,9 @@ export class NotificationService {
         title: match.sport === 'football' ? `${match.home?.name} vs ${match.away?.name}` : `${match.team1?.shortName || match.team1?.name} vs ${match.team2?.shortName || match.team2?.name}`
       };
 
+      // If user has unchecked notifications in settings, do NOT dispatch any alert
+      if (!isEnabled) continue;
+
       const prev = cachedState[matchId];
       if (!prev) continue; // First time seeing match, don't spam notification
 
@@ -42,14 +67,34 @@ export class NotificationService {
         const currAway = match.away?.score ?? 0;
 
         if (currHome > prevHome) {
+          const goalInfo = await FootballService.getGoalScorerInfo(match.rawId || match.id, true);
+          let title = `⚽ GOAL! ${match.home.name} scores!`;
+          if (goalInfo && goalInfo.scorer) {
+            if (goalInfo.isOwnGoal) {
+              title = `⚽ OWN GOAL! ${goalInfo.scorer} (OG) scores for ${match.home.name}!`;
+            } else {
+              title = `⚽ GOAL! ${goalInfo.scorer} scores for ${match.home.name}!`;
+            }
+          }
+          const timeInfo = goalInfo?.minute || match.timeDisplay || 'Live';
           this.sendNotification(
-            `⚽ GOAL! ${match.home.name} Scored!`,
-            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${match.timeDisplay || 'Live'})`
+            title,
+            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${timeInfo})`
           );
         } else if (currAway > prevAway) {
+          const goalInfo = await FootballService.getGoalScorerInfo(match.rawId || match.id, false);
+          let title = `⚽ GOAL! ${match.away.name} scores!`;
+          if (goalInfo && goalInfo.scorer) {
+            if (goalInfo.isOwnGoal) {
+              title = `⚽ OWN GOAL! ${goalInfo.scorer} (OG) scores for ${match.away.name}!`;
+            } else {
+              title = `⚽ GOAL! ${goalInfo.scorer} scores for ${match.away.name}!`;
+            }
+          }
+          const timeInfo = goalInfo?.minute || match.timeDisplay || 'Live';
           this.sendNotification(
-            `⚽ GOAL! ${match.away.name} Scored!`,
-            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${match.timeDisplay || 'Live'})`
+            title,
+            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${timeInfo})`
           );
         }
 
@@ -108,7 +153,10 @@ export class NotificationService {
     return m ? parseInt(m[1]) : null;
   }
 
-  static sendNotification(title, message) {
+  static async sendNotification(title, message) {
+    const isEnabled = await this.isNotificationsEnabled();
+    if (!isEnabled) return;
+
     try {
       if (typeof chrome !== 'undefined' && chrome.notifications) {
         chrome.notifications.create({

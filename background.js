@@ -32,9 +32,16 @@ chrome.runtime.onInstalled.addListener(async () => {
     chrome.storage.session.remove('scorequick_tab_state').catch(() => {});
   }
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-    chrome.storage.local.get(['scorequick_poll_interval'], res => {
+    chrome.storage.local.get(['scorequick_poll_interval', 'scorequick_notifications_enabled'], res => {
+      const updates = {};
       if (!res || !res.scorequick_poll_interval) {
-        chrome.storage.local.set({ scorequick_poll_interval: 10 });
+        updates.scorequick_poll_interval = 10;
+      }
+      if (!res || res.scorequick_notifications_enabled === undefined) {
+        updates.scorequick_notifications_enabled = true;
+      }
+      if (Object.keys(updates).length > 0) {
+        chrome.storage.local.set(updates);
       }
     });
   }
@@ -138,8 +145,9 @@ async function refreshScores(forceBroadcast = false) {
     updateBadge(liveFollowedCount);
 
     // Desktop notifications:
-    // Send alerts strictly for followed teams/drivers only! Never when favorites is 0.
-    if (totalFavsCount > 0 && followedMatches.length > 0) {
+    // Send alerts strictly for followed teams/drivers only when enabled by user in settings! Never when unchecked or favorites is 0.
+    const notifEnabled = await NotificationService.isNotificationsEnabled();
+    if (notifEnabled && totalFavsCount > 0 && followedMatches.length > 0) {
       await NotificationService.checkAndNotify(followedMatches);
     }
 

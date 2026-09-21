@@ -147,6 +147,8 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 - ✅ **Local Storage only**: Followed teams, preferred refresh intervals, and cached feeds are stored strictly inside your browser's local `chrome.storage`.
 - 🌐 **Host Permissions**:
   - `fotmob.com` (Football fixtures and world news)
+  - `images.onefootball.com` (Football competition badges and club/national crests)
+  - `indiansuperleague.com` (Official Indian Super League badges and club crests)
   - `crex.live` & `crickapi.com` (Cricket live scoreboards)
   - `espncricinfo.com` & `espncdn.com` (Cricket scorepanels, HD news images, crests)
   - `formula1.com` & `jolpi.ca` (Formula 1 weekend schedules and driver standings)

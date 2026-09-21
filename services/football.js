@@ -147,7 +147,7 @@ export class FootballService {
       if (!league.matches || league.matches.length === 0) continue;
 
       const leagueId = league.id || league.primaryId;
-      const leagueLogo = (leagueId ? `https://images.fotmob.com/image_resources/logo/leaguelogo/${leagueId}.png` : '') || FavoritesService.getFootballLeagueLogo(league.name, leagueId);
+      const leagueLogo = FavoritesService.getFootballLeagueLogo(league.name, leagueId);
 
       const group = {
         leagueId: leagueId,
@@ -245,14 +245,14 @@ export class FootballService {
             name: m.home?.name || 'Home',
             longName: m.home?.longName || m.home?.name || 'Home',
             score: homeScore,
-            logo: m.home?.id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${m.home.id}.png` : ''
+            logo: FavoritesService.getFootballLogo(m.home?.name, m.home?.shortName, m.home?.id)
           },
           away: {
             id: m.away?.id,
             name: m.away?.name || 'Away',
             longName: m.away?.longName || m.away?.name || 'Away',
             score: awayScore,
-            logo: m.away?.id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${m.away.id}.png` : ''
+            logo: FavoritesService.getFootballLogo(m.away?.name, m.away?.shortName, m.away?.id)
           },
           statusText: isLive ? timeDisplay : (isFinished ? (dateDisplay ? `Full Time (${dateDisplay})` : 'Full Time') : `Starts at ${timeDisplay}`),
           matchUrl: `https://www.fotmob.com/match/${m.id}`
@@ -495,6 +495,72 @@ export class FootballService {
     } catch (e) {
       console.error('Football fallback error:', e);
       return { sport: 'football', allMatches: [], liveMatches: [], leagues: [], liveCount: 0 };
+    }
+  }
+
+  /**
+   * Fetches latest goalscorer name and minute for a football match
+   */
+  static async getGoalScorerInfo(rawMatchId, isHome) {
+    if (!rawMatchId) return null;
+    const cleanId = String(rawMatchId).replace(/^fb_/, '');
+    const url = `https://www.fotmob.com/api/data/matchDetails?matchId=${cleanId}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const events = data.content?.matchFacts?.events?.events || 
+                     data.content?.matchFacts?.events || 
+                     [];
+
+      if (Array.isArray(events)) {
+        const goalEvents = events.filter(e => e && (e.type === 'Goal' || e.type === 'ownGoal' || e.goalType) && e.isHome === isHome);
+        if (goalEvents.length > 0) {
+          const latestGoal = goalEvents[goalEvents.length - 1];
+          const playerName = latestGoal.fullName || latestGoal.nameStr || latestGoal.player?.name || latestGoal.name || '';
+          const minute = latestGoal.timeStr || latestGoal.time || latestGoal.min || '';
+          const isOwnGoal = Boolean(latestGoal.ownGoal || latestGoal.isOwnGoal || latestGoal.type === 'ownGoal');
+          if (playerName) {
+            return {
+              scorer: playerName,
+              minute: minute ? `${minute}'` : '',
+              isOwnGoal: isOwnGoal
+            };
+          }
+        }
+      }
+
+      // Fallback to header.events
+      const headerGoals = isHome ? data.header?.events?.homeTeamGoals : data.header?.events?.awayTeamGoals;
+      if (headerGoals && typeof headerGoals === 'object') {
+        const scorerNames = Object.keys(headerGoals);
+        if (scorerNames.length > 0) {
+          const lastScorer = scorerNames[scorerNames.length - 1];
+          const goalsArr = headerGoals[lastScorer];
+          const lastGoalObj = Array.isArray(goalsArr) ? goalsArr[goalsArr.length - 1] : null;
+          return {
+            scorer: lastScorer,
+            minute: lastGoalObj?.time ? `${lastGoalObj.time}'` : '',
+            isOwnGoal: Boolean(lastGoalObj?.overloadTimeStr?.includes('OG') || lastGoalObj?.ownGoal)
+          };
+        }
+      }
+
+      return null;
+    } catch (e) {
+      clearTimeout(timeoutId);
+      return null;
     }
   }
 }

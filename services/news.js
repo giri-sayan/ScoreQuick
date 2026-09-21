@@ -1,14 +1,6 @@
 /**
-<<<<<<< HEAD
  * ScoreQuick - Sports News Aggregator Service
  * Aggregates rich sports news across Football, Cricket, and Formula 1.
-=======
- * ScoreQuick - Sports News Aggregator Service (v1.4)
- * Aggregates rich sports news directly from:
- * 1. ⚽ FotMob (World News API)
- * 2. 🏏 CREX (crex.live News & Top Stories)
- * 3. 🏎️ Official ESPN Formula 1 (Full 16:9 HD Photos)
->>>>>>> 59d987a4978bca949e5ffec84ffd419559c65776
  */
 
 export class NewsService {

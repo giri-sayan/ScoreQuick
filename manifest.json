@@ -25,6 +25,10 @@
   "host_permissions": [
     "https://www.fotmob.com/*",
     "https://*.fotmob.com/*",
+    "https://images.onefootball.com/*",
+    "https://*.onefootball.com/*",
+    "https://www.indiansuperleague.com/*",
+    "https://*.indiansuperleague.com/*",
     "https://crex.live/*",
     "https://api.goscorer.com/*",
     "https://*.crickapi.com/*",
