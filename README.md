@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
   <img src="icons/icon128.png" alt="ScoreQuick Logo" width="100" height="100" />
@@ -167,3 +168,6 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 ## 📄 License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+=======
+# ScoreQuick
+>>>>>>> f1c2118788f39cb364651979375f8b555a683feb
