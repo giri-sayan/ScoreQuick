@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ScoreQuick - Fastest Live Stats",
   "version": "1.2.0",
-  "description": "Real-time fastest live scores for Football, Cricket & Formula 1. Follow your favorite teams & drivers with unified feeds and instant alerts.",
+  "description": "Real-time live scores for Football, Cricket and Formula 1. Follow favorite teams and drivers with instant goal & wicket alerts.",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
