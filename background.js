@@ -1,5 +1,8 @@
 /**
  * ScoreQuick - Background Service Worker (Manifest V3)
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Handles background polling, toolbar badge counts for followed live events,
  * and desktop notifications strictly for followed teams and drivers.
  */
@@ -111,7 +114,7 @@ async function refreshScores(forceBroadcast = false) {
     const [fbResult, crResult, f1Result, favsResult] = await Promise.allSettled([
       FootballService.fetchMatches(),
       CricketService.fetchMatches(),
-      F1Service.fetchF1Data(),
+      F1Service.fetchF1Data(forceBroadcast),
       FavoritesService.getFavorites()
     ]);
 
@@ -151,6 +154,9 @@ async function refreshScores(forceBroadcast = false) {
       await NotificationService.checkAndNotify(followedMatches);
     }
 
+    // 2-Week Desktop Notification Reminder for "Buy Us A Tea"
+    await NotificationService.checkAndSendDonationReminder();
+
     // Cache latest data into chrome.storage.local for instantaneous popup loading
     const payload = {
       timestamp: Date.now(),
@@ -189,9 +195,32 @@ function updateBadge(liveFollowedCount) {
     } else {
       // Clear badge completely: NO badge displayed when followed teams are not live
       chrome.action.setBadgeText({ text: '' });
-      chrome.action.setTitle({ title: 'ScoreQuick Live Scores' });
+      chrome.action.setTitle({ title: 'ScoreQuick - Fastest Live Stats' });
     }
   } catch (e) {
     console.warn('[ScoreQuick] Failed to update badge:', e);
   }
 }
+
+// Handle desktop notification clicks (e.g. 2-week donation reminder)
+try {
+  if (typeof chrome !== 'undefined' && chrome.notifications) {
+    chrome.notifications.onButtonClicked?.addListener((notificationId, buttonIndex) => {
+      if (notificationId === 'scorequick_donation_reminder') {
+        if (buttonIndex === 0) {
+          chrome.tabs.create({ url: 'https://buymeacoffee.com/scorequick' });
+        }
+        chrome.storage.local.set({ scorequick_last_donation_notif: Date.now() });
+        chrome.notifications.clear(notificationId);
+      }
+    });
+
+    chrome.notifications.onClicked?.addListener((notificationId) => {
+      if (notificationId === 'scorequick_donation_reminder') {
+        chrome.tabs.create({ url: 'https://buymeacoffee.com/scorequick' });
+        chrome.storage.local.set({ scorequick_last_donation_notif: Date.now() });
+        chrome.notifications.clear(notificationId);
+      }
+    });
+  }
+} catch (_) {}

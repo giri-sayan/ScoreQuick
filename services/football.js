@@ -1,5 +1,8 @@
 /**
  * ScoreQuick - Football Match & Scores Service
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Fetches real-time scores, live match minutes, league groups, and standings.
  */
 
@@ -78,7 +81,7 @@ export class FootballService {
   static async fetchSingleDateRaw(dateStr) {
     const url = `https://www.fotmob.com/api/data/matches?date=${dateStr}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     try {
       const response = await fetch(url, {
         signal: controller.signal,

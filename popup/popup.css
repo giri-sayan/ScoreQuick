@@ -70,8 +70,23 @@ body {
   letter-spacing: -0.01em;
   overflow: hidden;
   user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .app-container {
@@ -219,26 +234,30 @@ body {
 
 .search-icon {
   position: absolute;
-  left: 11px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-dim);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s;
 }
 
 .search-box input {
   width: 100%;
-  height: 30px;
+  height: 33px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: 9999px;
-  padding: 0 28px 0 34px;
+  padding: 0 32px 0 36px;
   font-family: var(--font-family);
   font-size: 11.5px;
   font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 30px;
+  letter-spacing: 0.015em;
+  word-spacing: 0.05em;
+  line-height: normal;
   color: var(--text-main);
   outline: none;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -247,6 +266,14 @@ body {
 .search-box input::placeholder {
   color: var(--text-dim);
   font-weight: 400;
+  letter-spacing: 0.015em;
+  word-spacing: 0.05em;
+}
+
+.discover-search-box,
+.news-search-box {
+  margin-top: 2px;
+  margin-bottom: 10px;
 }
 
 .search-box input:focus {
@@ -255,13 +282,14 @@ body {
   box-shadow: 0 0 0 2px var(--accent-purple-glow), 0 2px 10px rgba(147, 51, 234, 0.18);
 }
 
+.search-box:focus-within .search-icon,
 .search-box input:focus ~ .search-icon {
   color: var(--accent-purple-light);
 }
 
 .clear-btn {
   position: absolute;
-  right: 9px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -356,7 +384,9 @@ body {
   scrollbar-color: #27272e transparent;
   position: relative;
   scroll-behavior: smooth;
-  contain: paint;
+  contain: layout paint;
+  transform: translateZ(0);
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-content::-webkit-scrollbar {
@@ -572,40 +602,12 @@ body {
   font-weight: 700;
 }
 
-.discover-search-box {
-  margin-bottom: 9px;
-}
-
-.discover-search-box input {
-  width: 100%;
-  height: 30px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 9999px;
-  padding: 0 12px;
-  font-family: var(--font-family);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--text-main);
-  outline: none;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.discover-search-box input::placeholder {
-  color: var(--text-dim);
-}
-
-.discover-search-box input:focus {
-  border-color: var(--accent-purple-bright);
-  background: #1b1b20;
-  box-shadow: 0 0 0 2px var(--accent-purple-glow), 0 2px 10px rgba(147, 51, 234, 0.18);
-}
-
 .discover-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 7px;
+  contain: layout style;
+  transform: translateZ(0);
 }
 
 .discover-card {
@@ -620,6 +622,10 @@ body {
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 44px;
+  contain: layout style;
+  transform: translateZ(0);
 }
 
 .discover-card:hover {
@@ -751,6 +757,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  contain: layout style;
+  transform: translateZ(0);
 }
 
 .league-group-header {
@@ -765,6 +773,7 @@ body {
   align-items: center;
   justify-content: space-between;
   transition: all 0.2s;
+  contain: layout style;
 }
 
 .league-group-header.has-live {
@@ -783,6 +792,10 @@ body {
   position: relative;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 68px;
+  contain: layout style;
+  transform: translateZ(0);
 }
 
 .match-card:hover {
@@ -1394,6 +1407,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6.5px;
+  cursor: pointer;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1406,6 +1420,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6.5px;
+  cursor: pointer;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1413,6 +1428,7 @@ body {
   background: var(--bg-card-hover);
   border-color: var(--border-hover);
   transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .f1-card-header {
@@ -1446,19 +1462,6 @@ body {
   background: var(--accent-purple-subtle);
   color: var(--accent-purple-highlight);
   border: 1px solid var(--accent-purple-border);
-}
-
-.f1-card-link-btn {
-  font-size: 9.5px;
-  color: var(--text-dim);
-  text-decoration: none;
-  font-weight: 600;
-  line-height: 1.2;
-  transition: color 0.15s;
-}
-
-.f1-card-link-btn:hover {
-  color: var(--accent-purple-highlight);
 }
 
 .f1-countdown-tag {
@@ -1736,6 +1739,8 @@ body {
   flex-direction: column;
   gap: 8px;
   padding: 2px 0 14px 0;
+  contain: layout style;
+  transform: translateZ(0);
 }
 
 .news-card {
@@ -1749,6 +1754,10 @@ body {
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 84px;
+  contain: layout style;
+  transform: translateZ(0);
 }
 
 .news-card:hover {
@@ -2037,6 +2046,263 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+/* ==========================================================================
+   Buy Me A Tea / Donation Card
+   ========================================================================== */
+.donation-card {
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: linear-gradient(145deg, #151519 0%, #191424 100%);
+  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.08);
+  margin-top: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.donation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #9333ea, #c084fc, #f59e0b);
+}
+
+.donation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.donation-title-block {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-direction: row;
+}
+
+.donation-title-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.tea-emblem-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(147, 51, 234, 0.22) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
+}
+
+.tea-steam {
+  transform-origin: bottom center;
+}
+
+.steam-1 {
+  animation: steamRise 2s ease-in-out infinite alternate;
+}
+
+.steam-2 {
+  animation: steamRise 2s ease-in-out infinite 0.4s alternate;
+}
+
+.steam-3 {
+  animation: steamRise 2s ease-in-out infinite 0.8s alternate;
+}
+
+@keyframes steamRise {
+  0% { transform: translateY(0); opacity: 0.6; }
+  100% { transform: translateY(-1.5px); opacity: 1; }
+}
+
+.donation-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.donation-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.global-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2.5px 8px;
+  border-radius: 9999px;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+}
+
+.donation-amounts-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.donation-amounts {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.donation-pill {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-family: var(--font-family);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.donation-pill:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-purple-light);
+  transform: translateY(-1px);
+}
+
+.donation-pill.active {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.28) 0%, rgba(192, 132, 252, 0.15) 100%);
+  border: 1px solid var(--accent-purple-bright);
+  box-shadow: 0 0 10px var(--accent-purple-glow);
+}
+
+.pill-usd {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.donation-pill.active .pill-usd {
+  color: var(--accent-purple-highlight);
+}
+
+.pill-tier {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.donation-pill.active .pill-tier {
+  color: #e9d5ff;
+}
+
+.custom-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.custom-currency-prefix {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.custom-amount-row input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  outline: none;
+}
+
+.donation-action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.direct-bmac-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #9333ea 100%);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+  text-decoration: none;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.22);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.direct-bmac-btn:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.38);
+  filter: brightness(1.08);
+}
+
+.btn-tea-icon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.donation-payment-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
+
+.method-tag {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2.5px 7px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.donation-thank-note {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.3;
 }
 
 /* ==========================================================================

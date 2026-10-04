@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScoreQuick Live</title>
+  <title>ScoreQuick - Fastest Live Stats</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
     <header class="app-header">
       <div class="brand-row">
         <div class="brand">
-          <div class="logo-icon thunderbolt-emblem" title="ScoreQuick Live Scores">
+          <div class="logo-icon thunderbolt-emblem" title="ScoreQuick - Fastest Live Stats">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
               <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#8b5cf6" stroke="#c084fc" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
             </svg>
@@ -104,8 +104,12 @@
           <div class="filter-pills sub-filter-pills" id="discover-subfilter-pills"></div>
         </div>
 
-        <div class="discover-search-box">
-          <input type="text" id="discover-search-input" placeholder="Search leagues, clubs, national teams, drivers, or constructors...">
+        <div class="search-box discover-search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="discover-search-input" placeholder="Search leagues, teams, drivers, or constructors...">
         </div>
 
         <div id="discover-list" class="discover-grid"></div>
@@ -124,7 +128,11 @@
           <span class="source-tag count-tag-purple" id="news-count-tag">0 Articles</span>
         </div>
 
-        <div class="discover-search-box" style="margin-bottom: 8px;">
+        <div class="search-box news-search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
           <input type="text" id="news-search-input" placeholder="Search sports news headlines or stories...">
         </div>
 
@@ -145,7 +153,7 @@
         <div id="followed-empty" class="empty-state" style="display: none;">
           <div class="empty-icon">⭐</div>
           <h3>Your Following Feed is Clean</h3>
-          <p>You haven't followed any teams yet. Discover clubs and drivers to see their live scores and alerts here!</p>
+          <p>You haven't followed any teams yet. Discover teams and drivers to see their live scores and alerts here!</p>
           <button class="discover-nav-btn" id="go-to-discover-btn">🔍 Discover Teams to Follow</button>
         </div>
       </section>
@@ -184,7 +192,6 @@
       <section id="tab-f1" class="tab-view">
         <div class="tab-subbar">
           <span class="source-tag f1-tag">Formula 1 Championship Hub</span>
-          <a href="https://www.formula1.com/en/racing/2026.html" target="_blank" class="ext-link-tag">F1 2026 ↗</a>
         </div>
         <div id="f1-content" class="matches-container">
           <!-- 1. Last Grand Prix (Date, Place, Podium, Pole & Sprint) -->
@@ -228,8 +235,8 @@
           </div>
           
           <div class="add-team-row">
-            <select id="add-team-sport" class="select-input" style="max-width: 125px;">
-              <option value="football">Football Club</option>
+            <select id="add-team-sport" class="select-input" style="max-width: 135px;">
+              <option value="football">Football Team</option>
               <option value="cricket">Cricket Team</option>
               <option value="f1">F1 Driver</option>
               <option value="f1_team">F1 Constructor</option>
@@ -239,7 +246,7 @@
           </div>
           
           <div class="followed-chips-container">
-            <div class="chips-group-title">⚽ Football Clubs:</div>
+            <div class="chips-group-title">⚽ Football Teams:</div>
             <div id="followed-fb-chips" class="chips-list">
               <span class="no-chips-hint">None</span>
             </div>
@@ -255,13 +262,110 @@
             </div>
           </div>
         </div>
+
+        <!-- ☕ Buy Me A Tea / Support Card (Global & Privacy-Protected) -->
+        <div class="settings-card donation-card" id="donation-card">
+          <div class="donation-header">
+            <div class="donation-title-block">
+              <div class="tea-emblem-badge" title="Buy Us A Tea!">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path class="tea-steam steam-1" d="M6 3C6 4.5 7.5 5 7.5 6.5C7.5 8 6 8.5 6 10" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path class="tea-steam steam-2" d="M10 2C10 3.8 11.8 4.2 11.8 6C11.8 7.8 10 8.2 10 10" stroke="#f59e0b" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path class="tea-steam steam-3" d="M14 3C14 4.5 15.5 5 15.5 6.5C15.5 8 14 8.5 14 10" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M3 10H17V15C17 17.2091 15.2091 19 13 19H7C4.79086 19 3 17.2091 3 15V10Z" fill="url(#teaGradient)" stroke="#fbbf24" stroke-width="1.2"/>
+                  <path d="M17 11.5H19C20.1046 11.5 21 12.3954 21 13.5C21 14.6046 20.1046 15.5 19 15.5H17" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round"/>
+                  <path d="M2 21H18" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+                  <defs>
+                    <linearGradient id="teaGradient" x1="3" y1="10" x2="17" y2="19" gradientUnits="userSpaceOnUse">
+                      <stop stop-color="#f59e0b" stop-opacity="0.85"/>
+                      <stop offset="1" stop-color="#b45309" stop-opacity="0.95"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div class="donation-title-text">
+                <h4 class="donation-title">Buy Us A Tea!</h4>
+                <p class="donation-subtitle">Fuel ScoreQuick With Your Support!</p>
+              </div>
+            </div>
+            <span class="global-badge">🌐 Global & Secure</span>
+          </div>
+
+          <!-- Amount Selection Pills -->
+          <div class="donation-amounts-label">Choose Tip Amount:</div>
+          <div class="donation-amounts" id="donation-amounts">
+            <button class="donation-pill" data-amt="0.10">
+              <span class="pill-usd">$0.10</span>
+              <span class="pill-tier">Sip</span>
+            </button>
+            <button class="donation-pill active" data-amt="1">
+              <span class="pill-usd">$1</span>
+              <span class="pill-tier">Cup</span>
+            </button>
+            <button class="donation-pill" data-amt="5">
+              <span class="pill-usd">$5</span>
+              <span class="pill-tier">Pot</span>
+            </button>
+            <button class="donation-pill" data-amt="10">
+              <span class="pill-usd">$10</span>
+              <span class="pill-tier">Super</span>
+            </button>
+            <button class="donation-pill custom-pill" data-amt="custom">
+              <span class="pill-usd">Custom</span>
+              <span class="pill-tier">Other</span>
+            </button>
+          </div>
+
+          <!-- Custom Amount Input -->
+          <div class="custom-amount-row" id="custom-amount-row" style="display: none;">
+            <span class="custom-currency-prefix">$</span>
+            <input type="number" id="custom-amount-input" placeholder="Enter custom amount in USD (e.g. 25)" min="0.10" step="0.5">
+            <button id="apply-custom-amount-btn" class="action-btn">Set</button>
+          </div>
+
+          <!-- Direct 1-Click Pay & Badges Box -->
+          <div class="donation-action-box">
+            <a id="direct-bmac-pay-link" href="https://buymeacoffee.com/scorequick" class="direct-bmac-btn" target="_blank">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" class="btn-tea-icon">
+                <path d="M3 10H17V15C17 17.2 15.2 19 13 19H7C4.8 19 3 17.2 3 15V10Z" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>
+                <path d="M17 11.5H19C20.1 11.5 21 12.4 21 13.5C21 14.6 20.1 15.5 19 15.5H17" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>
+                <path d="M2 21H18" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              <span id="donation-btn-text">Buy Us A Tea! ($1)</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+            </a>
+
+            <div class="donation-payment-methods">
+              <span class="method-tag">⚡ UPI</span>
+              <span class="method-tag">💳 Cards</span>
+              <span class="method-tag">🍎 Apple Pay</span>
+              <span class="method-tag">🇬 Google Pay</span>
+              <span class="method-tag">🔒 100% Private</span>
+            </div>
+
+            <p class="donation-thank-note">❤️ Powered by BuyMeACoffee • Private, zero donor fees & instant global checkout.</p>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h4>📱 Live Data Engines</h4>
+          <p class="sync-desc">
+            • <strong>Football</strong>: FotMob real-time score center. Clicking opens the exact FotMob match.<br>
+            • <strong>Cricket</strong>: CREX live ball-by-ball engine. Clicking opens exact match on CREX.<br>
+            • <strong>Formula 1</strong>: Official F1 Live Timing (formula1.com) with Last Grand Prix history and weekend telemetry.
+          </p>
+        </div>
       </section>
     </main>
 
     <!-- Footer status -->
     <footer class="app-footer">
       <span id="last-updated-text">Connecting to live feeds...</span>
-      <span class="app-footer-brand">ScoreQuick Live</span>
+      <span class="app-footer-brand">ScoreQuick - Fastest Live Stats</span>
     </footer>
   </div>
 

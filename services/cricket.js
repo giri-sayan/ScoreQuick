@@ -1,5 +1,8 @@
 /**
  * ScoreQuick - Cricket Service
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Fetches real-time cricket matches, live ball-by-ball scores, overs, and series.
  * Enriches active matches with current over balls, previous over balls, batsmen on crease, bowler figures, and target situations.
  */
@@ -46,6 +49,131 @@ export class CricketService {
   static _cachedSurroundingEspn = null;
   static _lastSurroundingFetch = 0;
   static SURROUNDING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache for yesterday/tomorrow/day-after
+  static _crexLinkMap = new Map();
+  static _crexHrefs = [];
+
+  static getTeamVariants(name, shortName) {
+    const variants = new Set();
+    const add = s => {
+      if (!s) return;
+      const clean = String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clean.length >= 2) variants.add(clean);
+    };
+
+    add(name);
+    add(shortName);
+
+    if (name) {
+      String(name).toLowerCase()
+        .replace(/[^a-z0-9]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length >= 2 && !['and', 'the', 'cricket', 'club', 'team', 'men', 'mens', 'women', 'womens'].includes(w))
+        .forEach(w => variants.add(w));
+    }
+
+    const raw = `${name || ''} ${shortName || ''}`.toLowerCase();
+    if (raw.includes('india') || raw.includes('ind')) { variants.add('ind'); variants.add('india'); }
+    if (raw.includes('west indies') || raw.includes('wi')) { variants.add('wi'); variants.add('west-indies'); }
+    if (raw.includes('pakistan') || raw.includes('pak')) { variants.add('pak'); variants.add('pakistan'); }
+    if (raw.includes('australia') || raw.includes('aus')) { variants.add('aus'); variants.add('australia'); }
+    if (raw.includes('england') || raw.includes('eng')) { variants.add('eng'); variants.add('england'); }
+    if (raw.includes('south africa') || raw.includes('sa')) { variants.add('sa'); variants.add('south-africa'); }
+    if (raw.includes('sri lanka') || raw.includes('sl')) { variants.add('sl'); variants.add('sri-lanka'); }
+    if (raw.includes('bangladesh') || raw.includes('ban')) { variants.add('ban'); variants.add('bangladesh'); }
+    if (raw.includes('afghanistan') || raw.includes('afg')) { variants.add('afg'); variants.add('afghanistan'); }
+    if (raw.includes('new zealand') || raw.includes('nz')) { variants.add('nz'); variants.add('new-zealand'); }
+    if (raw.includes('zimbabwe') || raw.includes('zim')) { variants.add('zim'); variants.add('zimbabwe'); }
+    if (raw.includes('ireland') || raw.includes('ire')) { variants.add('ire'); variants.add('ireland'); }
+    if (raw.includes('jammu') || raw.includes('kashmir') || raw.includes('j & k') || raw.includes('jk')) { variants.add('jk'); variants.add('jammu'); }
+    if (raw.includes('rest of india') || raw.includes('roi')) { variants.add('roi'); }
+    if (raw.includes('brampton') || raw.includes('bbz') || raw.includes('brb')) { variants.add('bbz'); variants.add('brampton'); }
+    if (raw.includes('montreal') || raw.includes('mrt')) { variants.add('mrt'); variants.add('montreal'); }
+    if (raw.includes('toronto') || raw.includes('tts') || raw.includes('tss')) { variants.add('tts'); variants.add('toronto'); }
+    if (raw.includes('mississauga') || raw.includes('mgm') || raw.includes('mim')) { variants.add('mgm'); variants.add('mississauga'); }
+    if (raw.includes('vancouver') || raw.includes('vac') || raw.includes('vaa') || raw.includes('vaw')) { variants.add('vac'); variants.add('vancouver'); }
+    if (raw.includes('white rock') || raw.includes('wrw')) { variants.add('wrw'); variants.add('white-rock'); }
+    if (raw.includes('western province') || raw.includes('wp') || raw.includes('wpr')) { variants.add('wp'); variants.add('western-province'); }
+    if (raw.includes('lions') || raw.includes('lio')) { variants.add('lio'); variants.add('lions'); }
+    if (raw.includes('warriors') || raw.includes('war')) { variants.add('war'); variants.add('warriors'); }
+    if (raw.includes('dolphins') || raw.includes('dol') || raw.includes('dolph')) { variants.add('dol'); variants.add('dolphins'); }
+    if (raw.includes('limpopo') || raw.includes('lmp') || raw.includes('limpo')) { variants.add('lmp'); variants.add('limpopo'); }
+    if (raw.includes('state bank') || raw.includes('sbp')) { variants.add('sbp'); }
+    if (raw.includes('oil & gas') || raw.includes('ogd') || raw.includes('o&g')) { variants.add('ogd'); }
+    if (raw.includes('emirates') || raw.includes('emr')) { variants.add('emr'); }
+    if (raw.includes('ajman') || raw.includes('ajt')) { variants.add('ajt'); }
+    if (raw.includes('sharjah') || raw.includes('sha')) { variants.add('sha'); }
+    if (raw.includes('dubai') || raw.includes('dub')) { variants.add('dub'); }
+    if (raw.includes('titans') || raw.includes('ttn')) { variants.add('titans'); }
+
+    return Array.from(variants);
+  }
+
+  static resolveCrexUrl(match) {
+    if (!match) return 'https://crex.com/cricket-live-score';
+
+    // 1. Direct key match in _crexLinkMap
+    if (match.rawId && this._crexLinkMap.has(match.rawId)) {
+      return this._crexLinkMap.get(match.rawId);
+    }
+
+    // 2. Already authentic CREX match updates link
+    if (match.matchUrl && match.matchUrl.startsWith('https://crex.com/cricket-live-score/') && match.matchUrl.includes('-updates-')) {
+      return match.matchUrl;
+    }
+
+    const t1Name = match.team1?.name || '';
+    const t1Short = match.team1?.shortName || '';
+    const t2Name = match.team2?.name || '';
+    const t2Short = match.team2?.shortName || '';
+    const sName = match.seriesName || '';
+    const format = (match.format || '').toLowerCase();
+
+    const t1Vars = this.getTeamVariants(t1Name, t1Short);
+    const t2Vars = this.getTeamVariants(t2Name, t2Short);
+
+    // 3. Search scraped CREX hrefs for canonical slug match
+    let bestHref = null;
+    let bestScore = -1;
+
+    for (const href of this._crexHrefs) {
+      const hLower = href.toLowerCase();
+      const t1Match = t1Vars.some(v => hLower.includes(v));
+      const t2Match = t2Vars.some(v => hLower.includes(v));
+
+      if (t1Match && t2Match) {
+        let score = 100;
+
+        if (format && (hLower.includes(format) || (format === 'odi' && hLower.includes('odi')) || (format.includes('t20') && hLower.includes('t20')) || (format.includes('test') && hLower.includes('test')))) {
+          score += 30;
+        }
+
+        if (sName) {
+          const sWords = sName.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+          for (const sw of sWords) {
+            if (hLower.includes(sw)) score += 10;
+          }
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestHref = href;
+        }
+      }
+    }
+
+    if (bestHref) {
+      return bestHref.startsWith('http') ? bestHref : `https://crex.com${bestHref}`;
+    }
+
+    // 4. Safe fallback for matches not present on CREX:
+    // If the match has a valid ESPNcricinfo scorecard URL, use it (100% working live match details with zero 404)
+    if (match.cricinfoUrl && typeof match.cricinfoUrl === 'string' && match.cricinfoUrl.startsWith('http')) {
+      return match.cricinfoUrl;
+    }
+
+    // Default to official CREX live score overview (Status 200)
+    return 'https://crex.com/cricket-live-score';
+  }
 
   static async fetchMatches() {
     try {
@@ -241,7 +369,7 @@ export class CricketService {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const res = await fetch(`https://crex.live/scoreboard/${matchKey}`, {
+      const res = await fetch(`https://crex.com/scoreboard/${matchKey}`, {
         headers: { 'Accept': 'text/html' },
         signal: controller.signal
       });
@@ -430,7 +558,7 @@ export class CricketService {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const res = await fetch('https://crex.live', {
+      const res = await fetch('https://crex.com', {
         headers: { 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' },
         signal: controller.signal
       });
@@ -441,14 +569,19 @@ export class CricketService {
 
       const matchHrefRegex = /href="(\/(?:cricket-live-score|scoreboard)\/[^"]+)"/g;
       const liveLinkMap = new Map();
+      const hrefsList = [];
       let matchLink;
       while ((matchLink = matchHrefRegex.exec(html)) !== null) {
         const link = matchLink[1];
+        hrefsList.push(link);
         const keyMatch = link.match(/-([a-zA-Z0-9]+)$/) || link.match(/\/([a-zA-Z0-9]+)$/);
         if (keyMatch) {
-          liveLinkMap.set(keyMatch[1], 'https://crex.live' + link);
+          liveLinkMap.set(keyMatch[1], 'https://crex.com' + link);
         }
       }
+
+      this._crexLinkMap = liveLinkMap;
+      this._crexHrefs = hrefsList;
 
       const match = html.match(/<script id="app-root-state" type="application\/json">([\s\S]*?)<\/script>/);
       if (!match || !match[1]) return [];
@@ -558,9 +691,16 @@ export class CricketService {
           } catch (_) {}
         }
 
-        const liveMatchUrl = liveLinkMap.get(matchKey) || `https://crex.live/scoreboard/${matchKey}`;
         const rawSName = m.sfullname || m.sname || sInfo.n || sInfo.sn || 'Cricket Tournament';
         const sName = decodeHtmlEntities(rawSName);
+
+        const liveMatchUrl = this.resolveCrexUrl({
+          rawId: matchKey,
+          team1: { name: team1Name, shortName: team1Short },
+          team2: { name: team2Name, shortName: team2Short },
+          seriesName: sName,
+          format: m.fo || m.format || ''
+        });
 
         matches.push({
           id: `cr_live_${matchKey}`,
@@ -769,6 +909,14 @@ export class CricketService {
           const t2DisplayName = t2.team?.displayName || t2.team?.name || 'Team 2';
           const t2Abbr = t2.team?.abbreviation || t2.team?.shortDisplayName || 'T2';
 
+          const crexMatchUrl = this.resolveCrexUrl({
+            rawId: ev.id,
+            team1: { name: t1DisplayName, shortName: t1Abbr },
+            team2: { name: t2DisplayName, shortName: t2Abbr },
+            seriesName: leagueName,
+            format: comp.format?.type || ''
+          });
+
           matches.push({
             id: `cr_espn_${ev.id}`,
             rawId: ev.id,
@@ -787,7 +935,7 @@ export class CricketService {
             statusText: statusText,
             situation: ev.status?.summary || statusText,
             target: matchTarget,
-            matchUrl: cricinfoUrl,
+            matchUrl: crexMatchUrl,
             cricinfoUrl: cricinfoUrl,
             team1: {
               name: t1DisplayName,
@@ -820,23 +968,73 @@ export class CricketService {
   static mergeCricketMatches(primaryMatches, espnMatches) {
     const combined = [...primaryMatches];
     const existingIndexMap = new Map();
+
     primaryMatches.forEach((m, idx) => {
-      const k1 = `${(m.team1.shortName || m.team1.name || '').toLowerCase()}_${(m.team2.shortName || m.team2.name || '').toLowerCase()}`;
-      existingIndexMap.set(k1, idx);
+      const t1s = (m.team1.shortName || m.team1.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t2s = (m.team2.shortName || m.team2.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t1n = (m.team1.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t2n = (m.team2.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      if (t1s && t2s) {
+        existingIndexMap.set(`${t1s}_${t2s}`, idx);
+        existingIndexMap.set(`${t2s}_${t1s}`, idx);
+      }
+      if (t1n && t2n) {
+        existingIndexMap.set(`${t1n}_${t2n}`, idx);
+        existingIndexMap.set(`${t2n}_${t1n}`, idx);
+      }
+      if (m.rawId) {
+        existingIndexMap.set(`raw_${m.rawId}`, idx);
+      }
     });
 
     for (const em of espnMatches) {
-      const key1 = `${(em.team1.shortName || em.team1.name || '').toLowerCase()}_${(em.team2.shortName || em.team2.name || '').toLowerCase()}`;
-      const key2 = `${(em.team2.shortName || em.team2.name || '').toLowerCase()}_${(em.team1.shortName || em.team1.name || '').toLowerCase()}`;
+      const t1s = (em.team1.shortName || em.team1.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t2s = (em.team2.shortName || em.team2.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t1n = (em.team1.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t2n = (em.team2.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-      if (existingIndexMap.has(key1)) {
-        combined[existingIndexMap.get(key1)].cricinfoUrl = em.cricinfoUrl;
-        if (em.leagueId) combined[existingIndexMap.get(key1)].leagueId = em.leagueId;
-      } else if (existingIndexMap.has(key2)) {
-        combined[existingIndexMap.get(key2)].cricinfoUrl = em.cricinfoUrl;
-        if (em.leagueId) combined[existingIndexMap.get(key2)].leagueId = em.leagueId;
+      const key1 = `${t1s}_${t2s}`;
+      const key2 = `${t2s}_${t1s}`;
+      const key3 = `${t1n}_${t2n}`;
+      const key4 = `${t2n}_${t1n}`;
+
+      let foundIdx = -1;
+      if (existingIndexMap.has(key1)) foundIdx = existingIndexMap.get(key1);
+      else if (existingIndexMap.has(key2)) foundIdx = existingIndexMap.get(key2);
+      else if (existingIndexMap.has(key3)) foundIdx = existingIndexMap.get(key3);
+      else if (existingIndexMap.has(key4)) foundIdx = existingIndexMap.get(key4);
+      else {
+        // Try fuzzy token match
+        const emT1Vars = this.getTeamVariants(em.team1.name, em.team1.shortName);
+        const emT2Vars = this.getTeamVariants(em.team2.name, em.team2.shortName);
+        for (let i = 0; i < primaryMatches.length; i++) {
+          const pm = primaryMatches[i];
+          const pmT1Vars = this.getTeamVariants(pm.team1.name, pm.team1.shortName);
+          const pmT2Vars = this.getTeamVariants(pm.team2.name, pm.team2.shortName);
+          const match1 = emT1Vars.some(v => pmT1Vars.includes(v)) && emT2Vars.some(v => pmT2Vars.includes(v));
+          const match2 = emT1Vars.some(v => pmT2Vars.includes(v)) && emT2Vars.some(v => pmT1Vars.includes(v));
+          if (match1 || match2) {
+            foundIdx = i;
+            break;
+          }
+        }
+      }
+
+      if (foundIdx >= 0) {
+        if (em.leagueId) combined[foundIdx].leagueId = em.leagueId;
+        // Strict: Preserve CREX live matchUrl, stats, overs, balls, and crease!
       } else {
+        // Strict CREX URL resolution for all cricket matches
+        em.matchUrl = this.resolveCrexUrl(em);
         combined.push(em);
+      }
+    }
+
+    // Guarantee that every match has a valid URL
+    for (const m of combined) {
+      if (!m.matchUrl || m.matchUrl.endsWith('-live-score')) {
+        m.matchUrl = this.resolveCrexUrl(m);
       }
     }
 

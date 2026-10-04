@@ -1,5 +1,8 @@
 /**
  * ScoreQuick - Popup Controller
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Features:
  * 1. Dedicated 🔍 Discover Tab: Sport filters, catalog search, 1-click follow clubs, drivers & constructors.
  * 2. 📰 Multi-Sport News Tab: Aggregated breaking news with ⭐ Followed vs All filters.
@@ -135,6 +138,7 @@ const elements = {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+  setupSecurityAndAntiCopyProtection();
   setupEventListeners();
 
   // 1. Concurrently restore remembered session tab state and instant cached data in parallel
@@ -145,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2. Render initial subfilters and current tab view with 0ms delay
   renderDiscoverSubfilters();
-  renderAllViews();
+  renderCurrentTabView();
 
   // 3. Live sync in background with spinner feedback if no cache
   fetchLiveScores(false);
@@ -153,6 +157,72 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 4. Start auto-refresh timer
   startAutoRefreshCountdown();
 });
+
+/**
+ * Security & Anti-Inspection Protection:
+ * - Disables right-click context menu (Inspect, View Page Source).
+ * - Blocks DevTools keyboard shortcuts (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C).
+ * - Blocks source view & save shortcuts (Ctrl+U, Ctrl+S).
+ * - Disables non-input selection and drag-and-drop extraction.
+ */
+function setupSecurityAndAntiCopyProtection() {
+  // 1. Disable Right-Click Context Menu
+  document.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }, { capture: true });
+
+  // 2. Disable DevTools & Copying Keyboard Shortcuts
+  document.addEventListener('keydown', e => {
+    const isMac = navigator.platform && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+    // F12 key
+    if (e.key === 'F12' || e.keyCode === 123) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Ctrl+Shift+I / Cmd+Option+I (Inspect DevTools)
+    // Ctrl+Shift+J / Cmd+Option+J (Console)
+    // Ctrl+Shift+C / Cmd+Option+C (Inspect Element)
+    if (ctrlOrCmd && (e.shiftKey || (isMac && e.altKey)) && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Ctrl+U / Cmd+U (View Page Source)
+    if (ctrlOrCmd && ['U', 'u'].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Ctrl+S / Cmd+S (Save Page)
+    if (ctrlOrCmd && ['S', 's'].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Prevent Ctrl+A or Ctrl+C if NOT inside an editable text/input field
+    const isInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+    if (!isInput && ctrlOrCmd && ['A', 'a', 'C', 'c', 'X', 'x'].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, { capture: true });
+
+  // 3. Prevent dragging images and links
+  document.addEventListener('dragstart', e => {
+    e.preventDefault();
+    return false;
+  }, { capture: true });
+}
 
 function setupEventListeners() {
   // Tabs
@@ -167,6 +237,21 @@ function setupEventListeners() {
   if (elements.goToDiscoverBtn) {
     elements.goToDiscoverBtn.addEventListener('click', () => {
       switchTab('discover');
+    });
+  }
+
+  // F1 Grand Prix Cards: Click directly opens the specific official Grand Prix page
+  if (elements.f1LastGpCard) {
+    elements.f1LastGpCard.addEventListener('click', () => {
+      const url = elements.f1LastGpCard.dataset.url;
+      if (url) openTab(url);
+    });
+  }
+
+  if (elements.f1UpcomingGpCard) {
+    elements.f1UpcomingGpCard.addEventListener('click', () => {
+      const url = elements.f1UpcomingGpCard.dataset.url;
+      if (url) openTab(url);
     });
   }
 
@@ -314,7 +399,7 @@ function setupEventListeners() {
     elements.addTeamInput.value = '';
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
-    renderAllViews();
+    updateBadges();
     renderSettingsChips();
   });
 
@@ -337,6 +422,81 @@ function setupEventListeners() {
   elements.toggleNotifications.addEventListener('change', e => {
     chrome.storage?.local?.set({ scorequick_notifications_enabled: e.target.checked });
   });
+
+  // Setup "Buy Me A Tea" donation card
+  setupDonationListeners();
+}
+
+/**
+ * Setup "Buy Us A Tea!" donation listeners, 2-week reminder banner, & dynamic BuyMeACoffee checkout
+ */
+function setupDonationListeners() {
+  const donationPills = document.querySelectorAll('.donation-pill');
+  const customRow = document.getElementById('custom-amount-row');
+  const customInput = document.getElementById('custom-amount-input');
+  const applyCustomBtn = document.getElementById('apply-custom-amount-btn');
+  const directBmacLink = document.getElementById('direct-bmac-pay-link');
+  const donationBtnText = document.getElementById('donation-btn-text');
+
+  // Creator Base URL (100% private, supports Cards, Apple Pay, Google Pay & UPI)
+  const bmacBaseUrl = 'https://buymeacoffee.com/scorequick';
+
+  const updateDonationAmount = (amtStr) => {
+    const formatted = parseFloat(amtStr) < 1 ? `$${parseFloat(amtStr).toFixed(2)}` : `$${parseFloat(amtStr)}`;
+    if (donationBtnText) {
+      donationBtnText.textContent = `Buy Us A Tea! (${formatted})`;
+    }
+    if (directBmacLink) {
+      directBmacLink.href = `${bmacBaseUrl}?amount=${encodeURIComponent(amtStr)}`;
+    }
+  };
+
+  // Default selection is $1
+  updateDonationAmount('1');
+
+  // Pill click handlers
+  donationPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      donationPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      const amt = pill.dataset.amt;
+      if (amt === 'custom') {
+        if (customRow) customRow.style.display = 'flex';
+        if (customInput) customInput.focus();
+      } else {
+        if (customRow) customRow.style.display = 'none';
+        updateDonationAmount(amt || '1');
+      }
+    });
+  });
+
+  // Custom amount set handler
+  if (applyCustomBtn && customInput) {
+    const handleApply = () => {
+      const val = parseFloat(customInput.value.trim());
+      if (val && val > 0) {
+        updateDonationAmount(String(val));
+      }
+    };
+    applyCustomBtn.addEventListener('click', handleApply);
+    customInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleApply();
+    });
+  }
+
+  // Direct checkout link click - open in new browser tab cleanly
+  if (directBmacLink) {
+    directBmacLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetUrl = directBmacLink.href || bmacBaseUrl;
+      if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+        chrome.tabs.create({ url: targetUrl });
+      } else {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      }
+    });
+  }
 }
 
 function switchTab(tabName) {
@@ -580,7 +740,7 @@ async function fetchLiveScores(forceRefresh = false) {
     const [fbRes, crRes, f1Res, newsRes, favsRes] = await Promise.allSettled([
       FootballService.fetchMatches(null, forceRefresh),
       CricketService.fetchMatches(),
-      F1Service.fetchF1Data(),
+      F1Service.fetchF1Data(forceRefresh),
       NewsService.fetchAllNews(forceRefresh),
       FavoritesService.getFavorites()
     ]);
@@ -709,7 +869,7 @@ function updateToolbarBadge(liveFollowedCount) {
       } else {
         // Clear badge completely: NO badge displayed when followed teams are not live
         chrome.action.setBadgeText({ text: '' });
-        chrome.action.setTitle({ title: 'ScoreQuick Live Scores' });
+        chrome.action.setTitle({ title: 'ScoreQuick - Fastest Live Stats' });
       }
     }
   } catch (e) {
@@ -765,7 +925,7 @@ function createDiscoverCard(item) {
   if (item.isLeague) {
     subtitle = item.sport === 'football' ? '🏆 Football League' : '🏆 Cricket Tournament';
   } else if (item.sport === 'football') {
-    subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Club');
+    subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Team');
   } else if (item.sport === 'cricket') {
     subtitle = item.category || 'Cricket Team';
   } else if (item.sport === 'f1') {
@@ -809,11 +969,12 @@ function createDiscoverCard(item) {
   // Follow toggle button listener
   const btn = card.querySelector('.follow-toggle-btn');
   btn.addEventListener('click', async () => {
-    await FavoritesService.toggleFollow(item.sport, item);
+    const isNowFollowing = await FavoritesService.toggleFollow(item.sport, item);
+    btn.classList.toggle('is-following', isNowFollowing);
+    btn.textContent = isNowFollowing ? '★ Following' : '+ Follow';
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
-    renderAllViews();
-    renderSettingsChips();
+    updateBadges();
   });
 
   return card;
@@ -971,7 +1132,7 @@ function createNewsCard(article) {
   const imgUrl = article.imageUrl ? article.imageUrl.replace(/"/g, '&quot;') : '';
   const thumbnailHtml = imgUrl 
     ? `<div class="news-thumbnail-wrap">
-         <img class="news-thumbnail" src="${imgUrl}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" loading="lazy" alt="">
+         <img class="news-thumbnail" src="${imgUrl}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" loading="lazy" decoding="async" width="84" height="64" alt="">
          <div class="news-placeholder" style="display:none;"><span class="news-placeholder-icon">${sourceIcon}</span></div>
        </div>`
     : `<div class="news-thumbnail-wrap"><div class="news-placeholder"><span class="news-placeholder-icon">${sourceIcon}</span></div></div>`;
@@ -1127,17 +1288,19 @@ function renderFootballView() {
     const leagueStarBtn = header.querySelector('.league-follow-btn');
     leagueStarBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      await FavoritesService.toggleFollow('football', {
+      const isNowFollowed = await FavoritesService.toggleFollow('football', {
         id: league.leagueId,
         name: league.leagueName,
         isLeague: true,
         category: 'League',
         logo: leagueLogoUrl
       });
+      leagueStarBtn.classList.toggle('followed', isNowFollowed);
+      leagueStarBtn.textContent = isNowFollowed ? '★' : '☆';
+      leagueStarBtn.title = isNowFollowed ? 'Unfollow League' : 'Follow Entire League';
       appState.favorites = await FavoritesService.getFavorites();
       updateFollowedMatches();
-      renderAllViews();
-      renderSettingsChips();
+      updateBadges();
     });
     fragment.appendChild(header);
 
@@ -1238,17 +1401,19 @@ function renderCricketView() {
     const seriesStarBtn = header.querySelector('.series-follow-btn');
     seriesStarBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      await FavoritesService.toggleFollow('cricket', {
+      const isNowFollowed = await FavoritesService.toggleFollow('cricket', {
         id: group.seriesName.toLowerCase().replace(/\s+/g, '_'),
         name: group.seriesName,
         isLeague: true,
         category: 'Tournament',
         logo: seriesLogoUrl
       });
+      seriesStarBtn.classList.toggle('followed', isNowFollowed);
+      seriesStarBtn.textContent = isNowFollowed ? '★' : '☆';
+      seriesStarBtn.title = isNowFollowed ? 'Unfollow Tournament' : 'Follow Tournament';
       appState.favorites = await FavoritesService.getFavorites();
       updateFollowedMatches();
-      renderAllViews();
-      renderSettingsChips();
+      updateBadges();
     });
     fragment.appendChild(header);
 
@@ -1293,6 +1458,8 @@ function renderF1View() {
 
   if (lastGp && matchLast) {
     elements.f1LastGpCard.style.display = 'flex';
+    elements.f1LastGpCard.dataset.url = lastGp.url || 'https://www.formula1.com/en/racing/2026.html';
+    elements.f1LastGpCard.setAttribute('title', `Click to open official ${lastGp.name} on formula1.com`);
 
     // Podium HTML
     const podiumHtml = (lastGp.podium || []).map(p => {
@@ -1342,9 +1509,6 @@ function renderF1View() {
           <span>🏁</span>
           <span>Last Grand Prix • Round ${lastGp.round}</span>
         </div>
-        <a href="${lastGp.url || 'https://www.formula1.com'}" target="_blank" class="f1-card-link-btn" title="View official F1 results">
-          F1 Official ↗
-        </a>
       </div>
 
       <div class="f1-gp-main-title">${lastGp.name}</div>
@@ -1375,6 +1539,8 @@ function renderF1View() {
 
   if (upcomingGp && matchUpcoming) {
     elements.f1UpcomingGpCard.style.display = 'flex';
+    elements.f1UpcomingGpCard.dataset.url = upcomingGp.url || 'https://www.formula1.com/en/racing/2026.html';
+    elements.f1UpcomingGpCard.setAttribute('title', `Click to open official ${upcomingGp.name} on formula1.com`);
 
     // Sessions HTML
     const sessionsHtml = (upcomingGp.sessions || []).map(s => {
@@ -1453,7 +1619,7 @@ function renderTeamAvatar(logoUrl, name = '', shortName = '', sport = 'cricket')
 
   return `
     <div class="team-logo-wrapper">
-      <img class="team-logo" src="${logoUrl}" alt="" loading="lazy"
+      <img class="team-logo" src="${logoUrl}" alt="" loading="lazy" decoding="async" width="18" height="18"
            onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
       <span class="team-avatar-fallback ${sport}" style="display: none;">${cleanAbbr}</span>
     </div>
@@ -1477,7 +1643,7 @@ function renderLeagueAvatar(logoUrl, name = '', sport = 'football', extraClass =
 
   return `
     <div class="league-logo-wrapper ${extraClass}">
-      <img class="league-logo-img" src="${logoUrl}" alt="${name}" loading="lazy"
+      <img class="league-logo-img" src="${logoUrl}" alt="${name}" loading="lazy" decoding="async"
            onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
       <span class="league-avatar-fallback ${sport}" style="display: none;" title="${name}">${fallbackIcon}</span>
     </div>
@@ -1559,8 +1725,23 @@ function createFootballCard(m) {
     }
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
-    renderAllViews();
-    renderSettingsChips();
+    updateBadges();
+
+    if (appState.currentTab === 'followed') {
+      renderFollowedView();
+    } else {
+      const nowHome = FavoritesService.isTeamFollowed(appState.favorites, 'football', m.home.name, m.home.id);
+      const nowAway = FavoritesService.isTeamFollowed(appState.favorites, 'football', m.away.name, m.away.id);
+      const nowLeague = FavoritesService.isLeagueFollowed(appState.favorites, 'football', m.leagueName, m.leagueId);
+      const nowCard = nowHome || nowAway || nowLeague;
+      starBtn.classList.toggle('followed', nowCard);
+      starBtn.textContent = nowCard ? '★' : '☆';
+
+      const homeNameEl = card.querySelector('.team-entry:first-child .team-name');
+      const awayNameEl = card.querySelector('.team-entry:last-child .team-name');
+      if (homeNameEl) homeNameEl.classList.toggle('is-fav', nowHome);
+      if (awayNameEl) awayNameEl.classList.toggle('is-fav', nowAway);
+    }
   });
 
   // Card click opens the match details page
@@ -1613,8 +1794,10 @@ function createCricketCard(m) {
     } catch (_) {}
   }
 
-  // Target URL prioritizes direct match link
-  const targetUrl = m.matchUrl || m.cricinfoUrl || `https://www.google.com/search?q=${encodeURIComponent(m.matchTitle + ' cricket match score')}`;
+  // Target URL strictly opens authentic match page with zero 404
+  const targetUrl = (m.matchUrl && !m.matchUrl.endsWith('-live-score')) 
+    ? m.matchUrl 
+    : (m.cricinfoUrl || 'https://crex.com/cricket-live-score');
 
   const t1OversText = formatCricketOvers(m.team1.overs);
   const t2OversText = formatCricketOvers(m.team2.overs);
@@ -1790,8 +1973,23 @@ function createCricketCard(m) {
     }
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
-    renderAllViews();
-    renderSettingsChips();
+    updateBadges();
+
+    if (appState.currentTab === 'followed') {
+      renderFollowedView();
+    } else {
+      const nowT1 = FavoritesService.isTeamFollowed(appState.favorites, 'cricket', m.team1.name) || FavoritesService.isTeamFollowed(appState.favorites, 'cricket', m.team1.shortName);
+      const nowT2 = FavoritesService.isTeamFollowed(appState.favorites, 'cricket', m.team2.name) || FavoritesService.isTeamFollowed(appState.favorites, 'cricket', m.team2.shortName);
+      const nowSeries = FavoritesService.isLeagueFollowed(appState.favorites, 'cricket', m.seriesName);
+      const nowCard = nowT1 || nowT2 || nowSeries;
+      starBtn.classList.toggle('followed', nowCard);
+      starBtn.textContent = nowCard ? '★' : '☆';
+
+      const t1NameEl = card.querySelector('.cricket-team-row:first-of-type .team-name');
+      const t2NameEl = card.querySelector('.cricket-team-row:nth-of-type(2) .team-name');
+      if (t1NameEl) t1NameEl.classList.toggle('is-fav', nowT1);
+      if (t2NameEl) t2NameEl.classList.toggle('is-fav', nowT2);
+    }
   });
 
   // Card click opens EXACT match
@@ -1921,7 +2119,7 @@ function createChip(sport, item) {
     if (sport === 'cricket') logoUrl = FavoritesService.getCricketLogo(item.name, item.shortName);
   }
 
-  const logoHtml = logoUrl ? `<img src="${logoUrl}" class="chip-logo" onerror="this.style.display='none'">` : '';
+  const logoHtml = logoUrl ? `<img src="${logoUrl}" class="chip-logo" loading="lazy" decoding="async" width="12" height="12" onerror="this.style.display='none'">` : '';
 
   chip.innerHTML = `
     ${logoHtml}
@@ -1932,7 +2130,7 @@ function createChip(sport, item) {
     await FavoritesService.toggleFollow(sport, item);
     appState.favorites = await FavoritesService.getFavorites();
     updateFollowedMatches();
-    renderAllViews();
+    updateBadges();
     renderSettingsChips();
   });
   return chip;

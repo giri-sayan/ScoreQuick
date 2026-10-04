@@ -1,7 +1,23 @@
 /**
  * ScoreQuick - Sports News Aggregator Service
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Aggregates rich sports news across Football, Cricket, and Formula 1.
  */
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
 
 export class NewsService {
   static STORAGE_KEY = 'scorequick_cached_news';
@@ -84,7 +100,7 @@ export class NewsService {
    */
   static async fetchFootballNews() {
     try {
-      const res = await fetch('https://www.fotmob.com/api/worldnews');
+      const res = await fetchWithTimeout('https://www.fotmob.com/api/worldnews', {}, 3000);
       if (!res.ok) return [];
 
       const data = await res.json();
@@ -153,7 +169,7 @@ export class NewsService {
    */
   static async fetchEspnCricketNews() {
     try {
-      const res = await fetch('https://www.espncricinfo.com/rss/content/story/feeds/0.xml');
+      const res = await fetchWithTimeout('https://www.espncricinfo.com/rss/content/story/feeds/0.xml', {}, 3000);
       if (!res.ok) {
         return this.fetchEspnCricketNewsFallback();
       }
@@ -214,7 +230,7 @@ export class NewsService {
    */
   static async fetchEspnCricketNewsFallback() {
     try {
-      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/cricket/8048/news');
+      const res = await fetchWithTimeout('https://site.api.espn.com/apis/site/v2/sports/cricket/8048/news', {}, 3000);
       if (!res.ok) return [];
 
       const data = await res.json();
@@ -248,7 +264,7 @@ export class NewsService {
    */
   static async fetchLiveCricketNews() {
     try {
-      const res = await fetch('https://crex.live/news');
+      const res = await fetchWithTimeout('https://crex.com/news', {}, 3000);
       if (!res.ok) return [];
 
       const html = await res.text();
@@ -275,8 +291,8 @@ export class NewsService {
 
         const timeMs = item.clsOn ? Number(item.clsOn) : Date.now();
         const articleUrl = item.newsUrl 
-          ? (item.newsUrl.startsWith('http') ? item.newsUrl : `https://crex.live${item.newsUrl}`)
-          : 'https://crex.live/news';
+          ? (item.newsUrl.startsWith('http') ? item.newsUrl : `https://crex.com${item.newsUrl}`)
+          : 'https://crex.com/news';
 
         const img = cleanImageUrl(item.img);
 
@@ -315,9 +331,9 @@ export class NewsService {
       let data = null;
       for (const url of urls) {
         try {
-          const res = await fetch(url, {
+          const res = await fetchWithTimeout(url, {
             headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-          });
+          }, 3000);
           if (res.ok) {
             data = await res.json();
             if (data?.articles && Array.isArray(data.articles) && data.articles.length > 0) {

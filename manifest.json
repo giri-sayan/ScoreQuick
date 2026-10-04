@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ScoreQuick - Fastest Live Stats",
   "version": "1.2.0",
-  "description": "Real-time live scores for Football, Cricket & Formula 1. Follow your favorite teams & drivers with unified feeds and instant alerts.",
+  "description": "Real-time fastest live scores for Football, Cricket & Formula 1. Follow your favorite teams & drivers with unified feeds and instant alerts.",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -10,7 +10,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "ScoreQuick Live Scores"
+    "default_title": "ScoreQuick - Fastest Live Stats"
   },
   "background": {
     "service_worker": "background.js",
@@ -25,10 +25,14 @@
   "host_permissions": [
     "https://www.fotmob.com/*",
     "https://*.fotmob.com/*",
+    "https://static.flashscore.com/*",
+    "https://*.flashscore.com/*",
     "https://images.onefootball.com/*",
     "https://*.onefootball.com/*",
     "https://www.indiansuperleague.com/*",
     "https://*.indiansuperleague.com/*",
+    "https://crex.com/*",
+    "https://*.crex.com/*",
     "https://crex.live/*",
     "https://api.goscorer.com/*",
     "https://*.crickapi.com/*",

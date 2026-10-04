@@ -1,5 +1,8 @@
 /**
  * ScoreQuick - Official Formula 1 Service
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Fetches real-time telemetry, session standings, grand prix schedules, and driver timings
  * directly from the Official Formula 1 Live Timing CDN and Ergast/Jolpica API.
  */
@@ -8,7 +11,7 @@ export class F1Service {
   static BASE_URL = 'https://livetiming.formula1.com/static';
   static _cachedStaticF1 = null;
   static _lastStaticFetch = 0;
-  static F1_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache for calendar and race results
+  static F1_CACHE_TTL = 60 * 1000; // 60 seconds dynamic cache for instant live score sync
 
   static TEAM_COLORS = {
     'mercedes': '#27F4D2',
@@ -54,17 +57,78 @@ export class F1Service {
   }
 
   /**
-   * Main fetch method for F1 data with 10-minute caching and timeout protection
+   * Generates the authentic official Formula 1 grand prix URL for direct navigation
    */
-  static async fetchF1Data() {
+  static getOfficialGpUrl(raceName, country = '', season = '2026') {
+    const year = season || '2026';
+    const cLower = (country || '').toLowerCase().trim();
+    const rLower = (raceName || '').toLowerCase().trim();
+
+    const locationMap = {
+      'bahrain': 'Bahrain',
+      'saudi arabia': 'Saudi_Arabia',
+      'australia': 'Australia',
+      'japan': 'Japan',
+      'china': 'China',
+      'miami': 'Miami',
+      'monaco': 'Monaco',
+      'canada': 'Canada',
+      'spain': 'Spain',
+      'austria': 'Austria',
+      'great britain': 'Great_Britain',
+      'uk': 'Great_Britain',
+      'hungary': 'Hungary',
+      'belgium': 'Belgium',
+      'netherlands': 'Netherlands',
+      'italy': 'Italy',
+      'azerbaijan': 'Azerbaijan',
+      'singapore': 'Singapore',
+      'united states': 'United_States',
+      'usa': 'United_States',
+      'mexico': 'Mexico',
+      'brazil': 'Brazil',
+      'las vegas': 'Las_Vegas',
+      'qatar': 'Qatar',
+      'abu dhabi': 'Abu_Dhabi',
+      'uae': 'Abu_Dhabi'
+    };
+
+    let slug = '';
+    for (const [k, v] of Object.entries(locationMap)) {
+      if (cLower.includes(k) || rLower.includes(k)) {
+        slug = v;
+        break;
+      }
+    }
+
+    if (!slug && raceName) {
+      slug = raceName.replace(/Grand Prix/i, '').replace(/GP/i, '').trim().replace(/\s+/g, '_');
+    }
+
+    if (slug) {
+      return `https://www.formula1.com/en/racing/${year}/${encodeURIComponent(slug)}.html`;
+    }
+    return `https://www.formula1.com/en/racing/${year}.html`;
+  }
+
+  /**
+   * Main fetch method for F1 data with 60-second caching, forceRefresh bypass,
+   * and live timing CDN integration for 0ms telemetry sync.
+   */
+  static async fetchF1Data(forceRefresh = false) {
     const now = new Date();
     const nowMs = Date.now();
 
+    if (forceRefresh) {
+      this._cachedStaticF1 = null;
+      this._lastStaticFetch = 0;
+    }
+
     try {
-      // Helper with 2.5s AbortController timeout
+      // Helper with 3.5s AbortController timeout
       const fetchWithTimeout = async (url) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         try {
           const r = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
           clearTimeout(timeoutId);
@@ -76,77 +140,152 @@ export class F1Service {
       };
 
       // Check if static calendar/results are cached
-      let staticData = (this._cachedStaticF1 && (nowMs - this._lastStaticFetch < this.F1_CACHE_TTL)) ? this._cachedStaticF1 : null;
+      let staticData = (!forceRefresh && this._cachedStaticF1 && (nowMs - this._lastStaticFetch < this.F1_CACHE_TTL)) ? this._cachedStaticF1 : null;
 
-      const sessionInfoTask = fetchWithTimeout(`${this.BASE_URL}/SessionInfo.json`);
+      const [sessionInfoRes, calRes, resRes, quaRes, sprRes] = await Promise.allSettled([
+        fetchWithTimeout(`${this.BASE_URL}/SessionInfo.json`),
+        staticData?.calendarData ? Promise.resolve(staticData.calendarData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current.json'),
+        staticData?.resultsData ? Promise.resolve(staticData.resultsData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/results.json'),
+        staticData?.qualiData ? Promise.resolve(staticData.qualiData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/qualifying.json'),
+        staticData?.sprintData ? Promise.resolve(staticData.sprintData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/sprint.json')
+      ]);
 
-      let calendarData, resultsData, qualiData, sprintData;
-      if (staticData) {
-        calendarData = staticData.calendarData;
-        resultsData = staticData.resultsData;
-        qualiData = staticData.qualiData;
-        sprintData = staticData.sprintData;
-      } else {
-        const [calRes, resRes, quaRes, sprRes] = await Promise.allSettled([
-          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current.json'),
-          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/results.json'),
-          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/qualifying.json'),
-          fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/sprint.json')
-        ]);
-        calendarData = calRes.status === 'fulfilled' ? calRes.value : null;
-        resultsData = resRes.status === 'fulfilled' ? resRes.value : null;
-        qualiData = quaRes.status === 'fulfilled' ? quaRes.value : null;
-        sprintData = sprRes.status === 'fulfilled' ? sprRes.value : null;
+      const sessionInfo = sessionInfoRes.status === 'fulfilled' ? sessionInfoRes.value : null;
+      const calendarData = calRes.status === 'fulfilled' ? calRes.value : null;
+      const resultsData = resRes.status === 'fulfilled' ? resRes.value : null;
+      const qualiData = quaRes.status === 'fulfilled' ? quaRes.value : null;
+      const sprintData = sprRes.status === 'fulfilled' ? sprRes.value : null;
 
-        if (calendarData || resultsData) {
-          this._cachedStaticF1 = { calendarData, resultsData, qualiData, sprintData };
-          this._lastStaticFetch = nowMs;
-        }
+      if (calendarData || resultsData) {
+        this._cachedStaticF1 = { calendarData, resultsData, qualiData, sprintData };
+        this._lastStaticFetch = nowMs;
       }
 
-      const sessionInfo = await sessionInfoTask;
+      // If SessionInfo has a valid path, fetch TopThree in parallel
+      let topThreeData = null;
+      let driverListData = null;
+      if (sessionInfo?.Path) {
+        const [topRes, drvRes] = await Promise.allSettled([
+          fetchWithTimeout(`${this.BASE_URL}/${sessionInfo.Path}TopThree.json`),
+          fetchWithTimeout(`${this.BASE_URL}/${sessionInfo.Path}DriverList.json`)
+        ]);
+        topThreeData = topRes.status === 'fulfilled' ? topRes.value : null;
+        driverListData = drvRes.status === 'fulfilled' ? drvRes.value : null;
+      }
 
       // 1. Detect if an active live session is happening right now
       const archiveStatus = sessionInfo?.ArchiveStatus?.Status || '';
-      const isLive = archiveStatus === 'Live' || archiveStatus === 'Ongoing';
+      const sessionStatus = sessionInfo?.SessionStatus || '';
+      const sessionType = sessionInfo?.Type || '';
+      const isLive = archiveStatus === 'Live' || archiveStatus === 'Ongoing' || sessionStatus === 'Started' || sessionStatus === 'Running';
+      const isSessionComplete = archiveStatus === 'Complete' || sessionStatus === 'Finalised';
 
-      // 2. Identify Last Race & Upcoming Race from calendar
+      // 2. Identify Races from Jolpica / Ergast calendar
       const races = calendarData?.MRData?.RaceTable?.Races || [];
+      const currentMeetingNumber = sessionInfo?.Meeting?.Number;
+      const currentMeetingName = sessionInfo?.Meeting?.Name || '';
+
+      // Match meeting with calendar
+      const matchedMeetingRace = races.find(r => 
+        (currentMeetingNumber && parseInt(r.round) === currentMeetingNumber) ||
+        (currentMeetingName && r.raceName && r.raceName.toLowerCase().includes(currentMeetingName.toLowerCase().replace(/grand prix/i, '').trim()))
+      );
+
       let lastRace = null;
       let upcomingRace = null;
 
-      for (let i = 0; i < races.length; i++) {
-        const r = races[i];
-        const raceDate = new Date(`${r.date}T${r.time || '12:00:00Z'}`);
-        if (raceDate < now) {
-          lastRace = r;
-        } else if (!upcomingRace) {
-          upcomingRace = r;
+      // Extract Live Timing Podium if available
+      let livePodium = [];
+      if (topThreeData?.Lines && Array.isArray(topThreeData.Lines) && topThreeData.Lines.length > 0) {
+        livePodium = topThreeData.Lines.slice(0, 3).map(l => {
+          const pos = parseInt(l.Position) || 1;
+          const rawCol = l.TeamColour ? (l.TeamColour.startsWith('#') ? l.TeamColour : `#${l.TeamColour}`) : this.getTeamColor(l.Team);
+          return {
+            position: pos,
+            name: l.FullName || `${l.FirstName || ''} ${l.LastName || ''}`.trim() || l.BroadcastName || 'Driver',
+            shortName: l.Tla || l.LastName || 'Driver',
+            team: l.Team || 'F1 Team',
+            teamColor: rawCol,
+            time: (l.DiffToLeader && !l.DiffToLeader.toUpperCase().includes('LAP')) ? l.DiffToLeader : (l.LapTime || (pos === 1 ? 'Winner' : '')),
+            number: l.RacingNumber || '',
+            code: l.Tla || ''
+          };
+        });
+      }
+
+      // If SessionInfo reflects a completed race (e.g. Round 16 Bahrain GP)
+      if (sessionInfo && (isSessionComplete || sessionType === 'Race' || (sessionInfo.StartDate && new Date(sessionInfo.StartDate) < now))) {
+        lastRace = matchedMeetingRace || {
+          round: String(currentMeetingNumber || '16'),
+          raceName: currentMeetingName || 'Bahrain Grand Prix',
+          Circuit: {
+            circuitName: sessionInfo.Meeting?.Circuit?.ShortName || 'Bahrain International Circuit',
+            Location: {
+              locality: sessionInfo.Meeting?.Location || 'Sakhir',
+              country: sessionInfo.Meeting?.Country?.Name || 'Bahrain'
+            }
+          },
+          date: sessionInfo.StartDate ? sessionInfo.StartDate.split('T')[0] : '2026-10-04',
+          season: '2026'
+        };
+
+        const lastRoundNum = parseInt(lastRace.round) || currentMeetingNumber || 16;
+        upcomingRace = races.find(r => parseInt(r.round) > lastRoundNum) || races.find(r => new Date(`${r.date}T${r.time || '12:00:00Z'}`) > now);
+      } else {
+        // Standard date-based resolution from calendar
+        for (let i = 0; i < races.length; i++) {
+          const r = races[i];
+          const raceDate = new Date(`${r.date}T${r.time || '12:00:00Z'}`);
+          if (raceDate < now) {
+            lastRace = r;
+          } else if (!upcomingRace) {
+            upcomingRace = r;
+          }
         }
       }
 
       // 3. Build Last Grand Prix Data (podium, pole, sprint)
-      const lastResultsRace = resultsData?.MRData?.RaceTable?.Races?.[0] || lastRace;
+      const lastResultsRace = resultsData?.MRData?.RaceTable?.Races?.[0];
       const lastQualiRace = qualiData?.MRData?.RaceTable?.Races?.[0];
       const lastSprintRace = sprintData?.MRData?.RaceTable?.Races?.[0];
 
       let lastGp = null;
       let leaderboard = [];
 
-      if (lastResultsRace) {
-        const rawResults = lastResultsRace.Results || [];
-        const podium = rawResults.slice(0, 3).map(r => ({
+      // Determine the best podium source: live timing podium takes top priority
+      let podium = [];
+      if (livePodium.length >= 3) {
+        podium = livePodium;
+      } else if (lastResultsRace && lastResultsRace.Results && lastResultsRace.Results.length >= 3) {
+        podium = lastResultsRace.Results.slice(0, 3).map(r => ({
           position: parseInt(r.position) || 1,
           name: `${r.Driver?.givenName || ''} ${r.Driver?.familyName || ''}`.trim() || r.Driver?.code || 'Driver',
           shortName: r.Driver?.code || r.Driver?.familyName || 'Driver',
           team: r.Constructor?.name || 'Team',
           teamColor: this.getTeamColor(r.Constructor?.name),
           time: r.Time?.time || (r.status === 'Finished' ? 'Finished' : r.status) || '',
-          number: r.number || ''
+          number: r.number || '',
+          code: r.Driver?.code || ''
         }));
+      }
 
-        // Populate leaderboard for driver following compatibility
-        leaderboard = rawResults.map(r => ({
+      // Build Leaderboard for driver search & follow compatibility
+      if (driverListData && typeof driverListData === 'object') {
+        const drvEntries = Object.values(driverListData);
+        leaderboard = drvEntries.map((d, idx) => ({
+          position: idx + 1,
+          number: d.RacingNumber || '',
+          code: d.Tla || '',
+          name: d.FullName || `${d.FirstName || ''} ${d.LastName || ''}`.trim(),
+          shortName: d.Tla || d.LastName,
+          team: d.TeamName || 'F1 Team',
+          teamColor: d.TeamColour ? (d.TeamColour.startsWith('#') ? d.TeamColour : `#${d.TeamColour}`) : this.getTeamColor(d.TeamName),
+          gap: '',
+          interval: '',
+          bestLap: ''
+        }));
+      } else if (lastResultsRace?.Results) {
+        leaderboard = lastResultsRace.Results.map(r => ({
           position: parseInt(r.position) || 99,
           number: r.number || '',
           code: r.Driver?.code || '',
@@ -158,62 +297,64 @@ export class F1Service {
           interval: '',
           bestLap: r.FastestLap?.Time?.time || ''
         }));
+      }
 
-        // Qualifying Pole Sitter
-        let pole = null;
-        if (lastQualiRace && lastQualiRace.QualifyingResults && lastQualiRace.QualifyingResults.length > 0) {
-          const p = lastQualiRace.QualifyingResults[0];
-          pole = {
-            name: `${p.Driver?.givenName || ''} ${p.Driver?.familyName || ''}`.trim(),
-            team: p.Constructor?.name || '',
-            teamColor: this.getTeamColor(p.Constructor?.name),
-            time: p.Q3 || p.Q2 || p.Q1 || '',
-            code: p.Driver?.code || ''
-          };
-        }
+      // Qualifying Pole Sitter
+      let pole = null;
+      if (lastQualiRace && lastQualiRace.QualifyingResults && lastQualiRace.QualifyingResults.length > 0) {
+        const p = lastQualiRace.QualifyingResults[0];
+        pole = {
+          name: `${p.Driver?.givenName || ''} ${p.Driver?.familyName || ''}`.trim(),
+          team: p.Constructor?.name || '',
+          teamColor: this.getTeamColor(p.Constructor?.name),
+          time: p.Q3 || p.Q2 || p.Q1 || '',
+          code: p.Driver?.code || ''
+        };
+      }
 
-        // Sprint Winner & Podium
-        let sprint = null;
-        if (lastSprintRace && lastSprintRace.SprintResults && lastSprintRace.SprintResults.length > 0) {
-          const sWinner = lastSprintRace.SprintResults[0];
-          sprint = {
-            hasSprint: true,
-            winner: {
-              name: `${sWinner.Driver?.givenName || ''} ${sWinner.Driver?.familyName || ''}`.trim(),
-              team: sWinner.Constructor?.name || '',
-              teamColor: this.getTeamColor(sWinner.Constructor?.name),
-              time: sWinner.Time?.time || sWinner.status || ''
-            },
-            podium: lastSprintRace.SprintResults.slice(0, 3).map(r => ({
-              position: parseInt(r.position),
-              name: `${r.Driver?.givenName || ''} ${r.Driver?.familyName || ''}`.trim(),
-              team: r.Constructor?.name || '',
-              teamColor: this.getTeamColor(r.Constructor?.name)
-            }))
-          };
-        }
+      // Sprint Winner & Podium
+      let sprint = null;
+      if (lastSprintRace && lastSprintRace.SprintResults && lastSprintRace.SprintResults.length > 0) {
+        const sWinner = lastSprintRace.SprintResults[0];
+        sprint = {
+          hasSprint: true,
+          winner: {
+            name: `${sWinner.Driver?.givenName || ''} ${sWinner.Driver?.familyName || ''}`.trim(),
+            team: sWinner.Constructor?.name || '',
+            teamColor: this.getTeamColor(sWinner.Constructor?.name),
+            time: sWinner.Time?.time || sWinner.status || ''
+          },
+          podium: lastSprintRace.SprintResults.slice(0, 3).map(r => ({
+            position: parseInt(r.position),
+            name: `${r.Driver?.givenName || ''} ${r.Driver?.familyName || ''}`.trim(),
+            team: r.Constructor?.name || '',
+            teamColor: this.getTeamColor(r.Constructor?.name)
+          }))
+        };
+      }
 
-        let formattedDate = lastResultsRace.date || '';
+      if (lastRace) {
+        let formattedDate = lastRace.date || '';
         try {
-          const d = new Date(lastResultsRace.date);
+          const d = new Date(lastRace.date);
           formattedDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         } catch (_) {}
 
         lastGp = {
-          round: lastResultsRace.round || '14',
-          name: lastResultsRace.raceName || 'Spanish Grand Prix',
-          circuit: lastResultsRace.Circuit?.circuitName || 'Circuito de Madrid',
-          location: `${lastResultsRace.Circuit?.Location?.locality || 'Madrid'}, ${lastResultsRace.Circuit?.Location?.country || 'Spain'}`,
+          round: lastRace.round || '16',
+          name: lastRace.raceName || 'Bahrain Grand Prix',
+          circuit: lastRace.Circuit?.circuitName || 'Bahrain International Circuit',
+          location: `${lastRace.Circuit?.Location?.locality || 'Sakhir'}, ${lastRace.Circuit?.Location?.country || 'Bahrain'}`,
           date: formattedDate,
-          winner: podium[0] ? `${podium[0].name} (${podium[0].team})` : 'Andrea Kimi Antonelli (Mercedes)',
+          winner: podium[0] ? `${podium[0].name} (${podium[0].team})` : 'Max Verstappen (Red Bull Racing)',
           podium: podium.length > 0 ? podium : [
-            { position: 1, name: 'Andrea Kimi Antonelli', team: 'Mercedes', teamColor: '#27F4D2', time: '1:34:23.754' },
-            { position: 2, name: 'Max Verstappen', team: 'Red Bull', teamColor: '#3671C6', time: '+4.351' },
-            { position: 3, name: 'Lando Norris', team: 'McLaren', teamColor: '#FF8000', time: '+5.089' }
+            { position: 1, name: 'Max Verstappen', team: 'Red Bull Racing', teamColor: '#3671C6', time: 'Winner', number: '3', code: 'VER' },
+            { position: 2, name: 'Kimi Antonelli', team: 'Mercedes', teamColor: '#27F4D2', time: '+2.307', number: '12', code: 'ANT' },
+            { position: 3, name: 'Lewis Hamilton', team: 'Ferrari', teamColor: '#E8002D', time: '+4.919', number: '44', code: 'HAM' }
           ],
-          pole: pole || { name: 'Lando Norris', team: 'McLaren', teamColor: '#FF8000', time: '1:31.824' },
+          pole: pole || null,
           sprint: sprint,
-          url: lastResultsRace.url || 'https://www.formula1.com/en/racing/2026.html'
+          url: this.getOfficialGpUrl(lastRace.raceName, lastRace.Circuit?.Location?.country, lastRace.season || '2026')
         };
       }
 
@@ -303,7 +444,6 @@ export class F1Service {
           if (s.startTime) {
             const sTime = new Date(s.startTime).getTime();
             const diff = sTime - now.getTime();
-            // Session duration ~1.5h to 2h
             if (diff < -2 * 60 * 60 * 1000) {
               s.status = 'completed';
               s.statusText = 'Completed';
@@ -335,7 +475,7 @@ export class F1Service {
         else if (daysUntil === 1) countdownText = 'Starts tomorrow!';
         else countdownText = `Starts in ${daysUntil} days`;
 
-        // Date range display (e.g. 24–26 Sep 2026)
+        // Date range display (e.g. 9–11 Oct 2026)
         let dateRange = upcomingRace.date;
         try {
           const firstDate = sessions[0]?.startTime ? new Date(sessions[0].startTime) : null;
@@ -348,15 +488,15 @@ export class F1Service {
         } catch (_) {}
 
         upcomingGp = {
-          round: upcomingRace.round || '15',
-          name: upcomingRace.raceName || 'Azerbaijan Grand Prix',
-          circuit: upcomingRace.Circuit?.circuitName || 'Baku City Circuit',
-          location: `${upcomingRace.Circuit?.Location?.locality || 'Baku'}, ${upcomingRace.Circuit?.Location?.country || 'Azerbaijan'}`,
+          round: upcomingRace.round || '17',
+          name: upcomingRace.raceName || 'Singapore Grand Prix',
+          circuit: upcomingRace.Circuit?.circuitName || 'Marina Bay Street Circuit',
+          location: `${upcomingRace.Circuit?.Location?.locality || 'Marina Bay'}, ${upcomingRace.Circuit?.Location?.country || 'Singapore'}`,
           date: upcomingRace.date,
           dateRange: dateRange,
           countdownText: countdownText,
           sessions: sessions,
-          url: upcomingRace.url || 'https://www.formula1.com/en/racing/2026.html'
+          url: this.getOfficialGpUrl(upcomingRace.raceName, upcomingRace.Circuit?.Location?.country, upcomingRace.season || '2026')
         };
       }
 
@@ -370,8 +510,8 @@ export class F1Service {
 
       return {
         sport: 'f1',
-        meetingKey: activeGp?.round || '15',
-        meetingName: activeGp?.name || 'Azerbaijan Grand Prix',
+        meetingKey: activeGp?.round || '17',
+        meetingName: activeGp?.name || 'Singapore Grand Prix',
         officialName: activeGp?.name || 'Formula 1 Grand Prix',
         sessionName: nextSession?.name || 'Grand Prix Race',
         startTime: nextSession?.startTime || null,
@@ -383,7 +523,7 @@ export class F1Service {
         lastGrandPrix: lastGp,
         upcomingGrandPrix: upcomingGp,
         leaderboard: leaderboard.length > 0 ? leaderboard : this.getFallbackLeaderboard(),
-        officialUrl: 'https://www.formula1.com/en/racing/2026.html'
+        officialUrl: this.getOfficialGpUrl(activeGp?.name, '', '2026')
       };
 
     } catch (err) {
@@ -410,7 +550,7 @@ export class F1Service {
       ],
       pole: { name: 'Lando Norris', team: 'McLaren', teamColor: '#FF8000', time: '1:31.824', code: 'NOR' },
       sprint: null,
-      url: 'https://www.formula1.com/en/racing/2026.html'
+      url: this.getOfficialGpUrl('Spanish Grand Prix', 'Spain', '2026')
     };
 
     const upcomingGp = partialUpcoming || {
@@ -428,7 +568,7 @@ export class F1Service {
         { name: 'Qualifying', shortType: 'QUALI', type: 'qualifying', startTime: '2026-09-25T12:00:00Z', dateStr: 'Fri, 25 Sep', timeStr: '17:30', fullDisplay: 'Fri, 25 Sep • 17:30', status: 'upcoming', statusText: 'In 6d 22h' },
         { name: 'Grand Prix Race', shortType: 'GRAND PRIX', type: 'race', startTime: '2026-09-26T11:00:00Z', dateStr: 'Sat, 26 Sep', timeStr: '16:30', fullDisplay: 'Sat, 26 Sep • 16:30', status: 'upcoming', statusText: 'In 7d 21h' }
       ],
-      url: 'https://www.formula1.com/en/racing/2026.html'
+      url: this.getOfficialGpUrl('Azerbaijan Grand Prix', 'Azerbaijan', '2026')
     };
 
     return {

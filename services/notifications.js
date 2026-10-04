@@ -1,5 +1,8 @@
 /**
  * ScoreQuick - Notifications & Live Alert Service
+ * Copyright (c) 2026 Giri Sayan. All Rights Reserved.
+ * PROPRIETARY & CONFIDENTIAL. Unauthorized copying, modification, or distribution is prohibited.
+ *
  * Compares match states and dispatches native browser notifications for goals, wickets, and match outcomes.
  */
 
@@ -188,6 +191,55 @@ export class NotificationService {
     return new Promise(resolve => {
       if (typeof chrome !== 'undefined' && chrome.storage?.local) {
         chrome.storage.local.set({ [this.NOTIFICATION_CACHE_KEY]: cache }, () => resolve());
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  static DONATION_LAST_NOTIF_KEY = 'scorequick_last_donation_notif';
+  static TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000; // 14 Days
+
+  /**
+   * Dispatches a native desktop notification on the bottom-right of the user's screen
+   * strictly once every 2 weeks to support the project.
+   */
+  static async checkAndSendDonationReminder() {
+    if (typeof chrome === 'undefined' || !chrome.notifications) return;
+
+    return new Promise(resolve => {
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        chrome.storage.local.get([this.DONATION_LAST_NOTIF_KEY], res => {
+          const lastNotifTime = res?.[this.DONATION_LAST_NOTIF_KEY];
+          const now = Date.now();
+
+          // On first install, set the timestamp so it doesn't pop up immediately on day 1
+          if (!lastNotifTime) {
+            chrome.storage.local.set({ [this.DONATION_LAST_NOTIF_KEY]: now });
+            resolve();
+            return;
+          }
+
+          if (now - Number(lastNotifTime) >= this.TWO_WEEKS_MS) {
+            try {
+              chrome.notifications.create('scorequick_donation_reminder', {
+                type: 'basic',
+                iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+                title: '☕ ScoreQuick: Buy Us A Tea!',
+                message: 'Enjoying fastest live sports stats? Buy us a tea to support us!',
+                priority: 2,
+                buttons: [
+                  { title: '☕ Buy Us A Tea' },
+                  { title: 'Remind Later' }
+                ]
+              });
+              chrome.storage.local.set({ [this.DONATION_LAST_NOTIF_KEY]: now });
+            } catch (e) {
+              console.warn('[ScoreQuick] Failed to dispatch donation desktop notification:', e);
+            }
+          }
+          resolve();
+        });
       } else {
         resolve();
       }

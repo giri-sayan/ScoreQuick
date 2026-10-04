@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <div align="center">
 
   <img src="icons/icon128.png" alt="ScoreQuick Logo" width="100" height="100" />
@@ -9,7 +8,7 @@
   [![Manifest V3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
   [![Version](https://img.shields.io/badge/Version-1.2.0-green?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
   [![Sports](https://img.shields.io/badge/Sports-Football%20%7C%20Cricket%20%7C%20F1-orange?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
-  [![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
+  [![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-red?style=for-the-badge)](#-license--copyright)
 
   <p align="center">
     <strong>ScoreQuick</strong> is a lightning-fast, privacy-focused browser extension providing real-time live scores, comprehensive match centers, followed team hubs, and breaking sports news across <b>Football</b>, <b>Cricket</b>, and <b>Formula 1</b>.
@@ -148,9 +147,10 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 - ✅ **Local Storage only**: Followed teams, preferred refresh intervals, and cached feeds are stored strictly inside your browser's local `chrome.storage`.
 - 🌐 **Host Permissions**:
   - `fotmob.com` (Football fixtures and world news)
-  - `images.onefootball.com` (Football competition badges and club/national crests)
+  - `static.flashscore.com` (Football competition badges and club/national crests)
+  - `images.onefootball.com` (Football competition badges and backup crests)
   - `indiansuperleague.com` (Official Indian Super League badges and club crests)
-  - `crex.live` & `crickapi.com` (Cricket live scoreboards)
+  - `crex.com` & `crickapi.com` (Cricket live scoreboards & match centers)
   - `espncricinfo.com` & `espncdn.com` (Cricket scorepanels, HD news images, crests)
   - `formula1.com` & `jolpi.ca` (Formula 1 weekend schedules and driver standings)
   - `cricketvectors.akamaized.net` (High-resolution tournament vector badges)
@@ -165,9 +165,8 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 
 ---
 
-## 📄 License
+## 📄 License & Copyright
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-=======
-# ScoreQuick
->>>>>>> f1c2118788f39cb364651979375f8b555a683feb
+**Copyright © 2026 Giri Sayan. All Rights Reserved.**
+
+This software is **Proprietary and Confidential**. Unauthorized copying, reproduction, distribution, decompilation, reverse engineering, or commercial use of this codebase, via any medium, is strictly prohibited without prior written permission. See the [LICENSE](LICENSE) file for the full proprietary terms.
