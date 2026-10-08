@@ -21,7 +21,6 @@ ScoreQuick requests minimal browser permissions strictly required to provide its
 - **`storage`**: Used exclusively to store your followed teams, drivers, selected sport filters, and refresh interval preferences **locally on your device**. This data never leaves your browser.
 - **`alarms`**: Used to schedule background polling intervals to fetch live match score updates.
 - **`notifications`**: Used to display desktop alerts when a followed team scores a goal, a wicket falls, or a match concludes.
-- **`tabs`**: Used solely to open authentic match center links or sports news articles in a new tab when clicked by the user.
 - **`host_permissions`**: Used to fetch live match scores, telemetry, and official team logos directly from public sports endpoints (e.g. FotMob, CREX, Formula 1).
 
 ---

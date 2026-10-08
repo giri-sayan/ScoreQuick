@@ -191,7 +191,7 @@
       <!-- Tab 6: 🏎️ Formula 1 Feed -->
       <section id="tab-f1" class="tab-view">
         <div class="tab-subbar">
-          <span class="source-tag f1-tag">Formula 1 Championship Hub</span>
+          <span class="source-tag f1-tag">Live Formula 1 Hub</span>
         </div>
         <div id="f1-content" class="matches-container">
           <!-- 1. Last Grand Prix (Date, Place, Podium, Pole & Sprint) -->
@@ -367,6 +367,31 @@
       <span id="last-updated-text">Connecting to live feeds...</span>
       <span class="app-footer-brand">ScoreQuick - Fastest Live Stats</span>
     </footer>
+
+    <!-- 2-Week Donation Reminder Modal Overlay (Screenshot Style) -->
+    <div id="donation-reminder-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-backdrop" id="donation-reminder-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <span class="modal-title">ScoreQuick: Buy Us A Tea!</span>
+          </div>
+          <button id="modal-close-btn" class="modal-close-btn" title="Close" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-message">Enjoying fastest live sports stats? Buy us a tea to support us!</p>
+          <div class="modal-actions">
+            <button id="modal-donate-btn" class="modal-btn-primary">
+              <span class="modal-btn-icon">☕</span>
+              <span>Buy Us A Tea</span>
+            </button>
+            <button id="modal-remind-later-btn" class="modal-btn-secondary">
+              Remind Me Later
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="popup.js"></script>

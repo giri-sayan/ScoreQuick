@@ -82,7 +82,8 @@ export class NotificationService {
           const timeInfo = goalInfo?.minute || match.timeDisplay || 'Live';
           this.sendNotification(
             title,
-            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${timeInfo})`
+            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${timeInfo})`,
+            match.id
           );
         } else if (currAway > prevAway) {
           const goalInfo = await FootballService.getGoalScorerInfo(match.rawId || match.id, false);
@@ -97,7 +98,8 @@ export class NotificationService {
           const timeInfo = goalInfo?.minute || match.timeDisplay || 'Live';
           this.sendNotification(
             title,
-            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${timeInfo})`
+            `${match.home.name} ${currHome} - ${currAway} ${match.away.name} (${timeInfo})`,
+            match.id
           );
         }
 
@@ -105,7 +107,8 @@ export class NotificationService {
         if (!prev.isFinished && match.isFinished) {
           this.sendNotification(
             `⏱️ Full Time: ${match.home.name} vs ${match.away.name}`,
-            `Final Score: ${currHome} - ${currAway}`
+            `Final Score: ${currHome} - ${currAway}`,
+            match.id
           );
         }
       }
@@ -121,12 +124,14 @@ export class NotificationService {
         if (this.detectWicket(prevT1, currT1)) {
           this.sendNotification(
             `🏏 WICKET! (${match.team1.shortName || match.team1.name})`,
-            `${match.team1.name}: ${currT1} | vs ${match.team2.name}`
+            `${match.team1.name}: ${currT1} | vs ${match.team2.name}`,
+            match.id
           );
         } else if (this.detectWicket(prevT2, currT2)) {
           this.sendNotification(
             `🏏 WICKET! (${match.team2.shortName || match.team2.name})`,
-            `${match.team2.name}: ${currT2} | vs ${match.team1.name}`
+            `${match.team2.name}: ${currT2} | vs ${match.team1.name}`,
+            match.id
           );
         }
 
@@ -134,7 +139,8 @@ export class NotificationService {
         if (!prev.isFinished && match.isFinished) {
           this.sendNotification(
             `🏆 Match Concluded: ${match.matchTitle || match.seriesName}`,
-            match.result || match.statusText || 'Match finished'
+            match.result || match.statusText || 'Match finished',
+            match.id
           );
         }
       }
@@ -156,7 +162,7 @@ export class NotificationService {
     return m ? parseInt(m[1]) : null;
   }
 
-  static async sendNotification(title, message) {
+  static async sendNotification(title, message, matchId = null) {
     const isEnabled = await this.isNotificationsEnabled();
     if (!isEnabled) return;
 
@@ -171,7 +177,7 @@ export class NotificationService {
         });
       }
     } catch (e) {
-      console.warn('Failed to dispatch notification:', e);
+      console.warn('[ScoreQuick] Failed to dispatch match notification:', e);
     }
   }
 

@@ -12,7 +12,7 @@
  */
 
 import { FootballService } from '../services/football.js';
-import { CricketService } from '../services/cricket.js';
+import { CricketService, cleanCricketText } from '../services/cricket.js';
 import { F1Service } from '../services/f1.js';
 import { FavoritesService } from '../services/favorites.js';
 import { NewsService } from '../services/news.js';
@@ -73,6 +73,18 @@ function debounce(fn, ms = 80) {
       }
     }, ms);
   };
+}
+
+/**
+ * Convert HEX color to RGBA for elegant card gradients and accents
+ */
+function hexToRgba(hex, alpha = 0.15) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return `rgba(168, 85, 247, ${alpha})`;
+  let c = hex.substring(1);
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return `rgba(168, 85, 247, ${alpha})`;
+  return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
 }
 
 // Global handle for idle batch render cancellation
@@ -497,6 +509,75 @@ function setupDonationListeners() {
       }
     });
   }
+
+  // 2-Week In-Popup Donation Reminder Modal
+  setupDonationReminderModal();
+}
+
+/**
+ * 2-Week Donation Reminder Modal
+ * Shows an in-popup dialog if 14 days have elapsed since installation or last reminder.
+ */
+function setupDonationReminderModal() {
+  const DONATION_REMINDER_KEY = 'scorequick_last_donation_modal_time';
+  const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+
+  const modalEl = document.getElementById('donation-reminder-modal');
+  const closeBtn = document.getElementById('modal-close-btn');
+  const backdrop = document.getElementById('donation-reminder-backdrop');
+  const donateBtn = document.getElementById('modal-donate-btn');
+  const remindLaterBtn = document.getElementById('modal-remind-later-btn');
+
+  if (!modalEl) return;
+
+  const dismissModal = (resetTimer = true) => {
+    modalEl.style.display = 'none';
+    if (resetTimer) {
+      const now = Date.now();
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        chrome.storage.local.set({ [DONATION_REMINDER_KEY]: now });
+      } else {
+        localStorage.setItem(DONATION_REMINDER_KEY, String(now));
+      }
+    }
+  };
+
+  closeBtn?.addEventListener('click', () => dismissModal(true));
+  backdrop?.addEventListener('click', () => dismissModal(true));
+  remindLaterBtn?.addEventListener('click', () => dismissModal(true));
+
+  donateBtn?.addEventListener('click', () => {
+    openTab('https://buymeacoffee.com/scorequick');
+    dismissModal(true);
+  });
+
+  const checkEligibility = () => {
+    const handleCheck = (lastTime) => {
+      const now = Date.now();
+      if (!lastTime) {
+        // Initial setup on install
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          chrome.storage.local.set({ [DONATION_REMINDER_KEY]: now });
+        } else {
+          localStorage.setItem(DONATION_REMINDER_KEY, String(now));
+        }
+        return;
+      }
+      if (now - Number(lastTime) >= TWO_WEEKS_MS) {
+        modalEl.style.display = 'flex';
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get([DONATION_REMINDER_KEY], res => {
+        handleCheck(res?.[DONATION_REMINDER_KEY]);
+      });
+    } else {
+      handleCheck(localStorage.getItem(DONATION_REMINDER_KEY));
+    }
+  };
+
+  setTimeout(checkEligibility, 500);
 }
 
 function switchTab(tabName) {
@@ -619,46 +700,45 @@ function saveTabState() {
 async function restoreTabState() {
   return new Promise(resolve => {
     const applySaved = (saved) => {
-      if (saved && saved.currentTab) {
-        appState.currentTab = saved.currentTab;
-        elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === saved.currentTab));
-        elements.tabViews.forEach(v => v.classList.toggle('active', v.id === `tab-${saved.currentTab}`));
+      const activeTab = saved?.currentTab || 'discover';
+      appState.currentTab = activeTab;
+      elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
+      elements.tabViews.forEach(v => v.classList.toggle('active', v.id === `tab-${activeTab}`));
 
-        if (saved.discoverSport) {
-          appState.discoverSport = saved.discoverSport === 'leagues' ? 'all' : saved.discoverSport;
-          document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.toggle('active', b.dataset.discSport === appState.discoverSport));
-        }
-        if (saved.discoverCategory) {
-          appState.discoverCategory = saved.discoverCategory;
-        }
-        if (saved.newsFilter) {
-          appState.newsFilter = saved.newsFilter;
-          elements.newsFilterBtns.forEach(b => b.classList.toggle('active', b.dataset.newsFilter === saved.newsFilter));
-        }
-        if (saved.footballFilter) {
-          appState.footballFilter = saved.footballFilter;
-          document.querySelectorAll('[data-fb-filter]').forEach(b => b.classList.toggle('active', b.dataset.fbFilter === saved.footballFilter));
-        }
-        if (saved.cricketFilter) {
-          appState.cricketFilter = saved.cricketFilter;
-          document.querySelectorAll('[data-cr-filter]').forEach(b => b.classList.toggle('active', b.dataset.crFilter === saved.cricketFilter));
-        }
-      } else {
-        // First time opening in browser session: Default to Discover tab!
-        appState.currentTab = 'discover';
-        elements.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'discover'));
-        elements.tabViews.forEach(v => v.classList.toggle('active', v.id === 'tab-discover'));
+      if (saved?.discoverSport) {
+        appState.discoverSport = saved.discoverSport === 'leagues' ? 'all' : saved.discoverSport;
+        document.querySelectorAll('[data-disc-sport]').forEach(b => b.classList.toggle('active', b.dataset.discSport === appState.discoverSport));
+      }
+      if (saved?.discoverCategory) {
+        appState.discoverCategory = saved.discoverCategory;
+      }
+      if (saved?.newsFilter) {
+        appState.newsFilter = saved.newsFilter;
+        elements.newsFilterBtns.forEach(b => b.classList.toggle('active', b.dataset.newsFilter === saved.newsFilter));
+      }
+      if (saved?.footballFilter) {
+        appState.footballFilter = saved.footballFilter;
+        document.querySelectorAll('[data-fb-filter]').forEach(b => b.classList.toggle('active', b.dataset.fbFilter === saved.footballFilter));
+      }
+      if (saved?.cricketFilter) {
+        appState.cricketFilter = saved.cricketFilter;
+        document.querySelectorAll('[data-cr-filter]').forEach(b => b.classList.toggle('active', b.dataset.crFilter === saved.cricketFilter));
       }
       renderDiscoverSubfilters();
       resolve();
     };
 
     if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-      chrome.storage.session.get(['scorequick_tab_state'], res => {
-        applySaved(res?.scorequick_tab_state);
+      chrome.storage.session.get(['scorequick_tab_state'], sessRes => {
+        applySaved(sessRes?.scorequick_tab_state);
       });
     } else {
-      applySaved(null);
+      let saved = null;
+      try {
+        const stored = sessionStorage.getItem('scorequick_tab_state');
+        if (stored) saved = JSON.parse(stored);
+      } catch (_) {}
+      applySaved(saved);
     }
   });
 }
@@ -914,43 +994,58 @@ function renderFollowedView() {
  */
 function createDiscoverCard(item) {
   const card = document.createElement('div');
-  card.className = `discover-card ${item.isLeague ? 'is-league-card' : ''}`;
+  const isF1 = item.sport === 'f1';
+  const isConstructor = isF1 && Boolean(item.isTeam || item.category === 'Constructor');
+  const teamColor = isF1 ? (item.color || F1Service.getTeamColor(item.team || item.name)) : null;
+
+  card.className = `discover-card ${item.isLeague ? 'is-league-card' : ''} ${isF1 ? (isConstructor ? 'f1-constructor-card' : 'f1-driver-card') : ''}`;
+
+  if (isF1 && isConstructor && teamColor) {
+    card.style.borderLeft = `3.5px solid ${teamColor}`;
+    card.style.background = `linear-gradient(90deg, ${hexToRgba(teamColor, 0.12)} 0%, var(--bg-card) 40%)`;
+  }
 
   const isFollowed = item.isLeague
     ? FavoritesService.isLeagueFollowed(appState.favorites, item.sport, item.name, item.id)
     : FavoritesService.isTeamFollowed(appState.favorites, item.sport, item.name, item.id);
 
-  // Subtitle
+  // Subtitle & Avatar
   let subtitle = '';
+  let avatarHtml = '';
+
   if (item.isLeague) {
     subtitle = item.sport === 'football' ? '🏆 Football League' : '🏆 Cricket Tournament';
-  } else if (item.sport === 'football') {
-    subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Team');
-  } else if (item.sport === 'cricket') {
-    subtitle = item.category || 'Cricket Team';
-  } else if (item.sport === 'f1') {
-    if (item.category === 'Constructor' || item.isTeam) {
-      subtitle = '🏁 F1 Constructor';
-    } else {
-      subtitle = item.team ? `${item.team} #${item.number || ''}` : 'F1 Driver';
-    }
-  }
-
-  // Avatar/Logo
-  let avatarHtml = '';
-  if (item.isLeague) {
     const logoUrl = item.logo || FavoritesService.getLeagueLogo(item.sport, item.name, item.id);
     avatarHtml = renderLeagueAvatar(logoUrl, item.name, item.sport, 'discover-avatar-wrapper');
-  } else if (item.sport === 'f1') {
-    if (item.category === 'Constructor' || item.isTeam) {
-      avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#8b5cf6'}; color: #fff; font-size: 11px;">🏁</span>`;
+  } else if (item.sport === 'football') {
+    subtitle = item.category === 'International' ? '🌍 National Team' : (item.league || 'Football Team');
+    const logoUrl = item.logo || FavoritesService.getFootballLogo(item.name, item.shortName, item.id);
+    avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, 'fb');
+  } else if (item.sport === 'cricket') {
+    subtitle = item.category || 'Cricket Team';
+    const logoUrl = item.logo || FavoritesService.getCricketLogo(item.name, item.shortName);
+    avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, 'cr');
+  } else if (isF1) {
+    const isBright = ['#27F4D2', '#52E252', '#64C4FF', '#B6BABD', '#FF8000', '#6692FF'].includes((teamColor || '').toUpperCase());
+    const textColor = isBright ? '#09090b' : '#ffffff';
+
+    if (isConstructor) {
+      const cRank = item.rank || F1Service.getConstructorRank(item.name || item.id) || 1;
+      subtitle = `Rank #${cRank} • F1 Constructor`;
+      avatarHtml = `
+        <span class="discover-avatar f1-rank-avatar" style="background: ${teamColor}; color: ${textColor}; font-weight: 800; font-size: 10px; border: 1.5px solid ${teamColor}; min-width: 26px; height: 22px; padding: 0 4px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 6px ${hexToRgba(teamColor, 0.4)};">
+          #${cRank}
+        </span>
+      `;
     } else {
-      avatarHtml = `<span class="discover-avatar" style="background: ${item.color || '#334155'}; color: #fff; font-size: 10px;">${item.code || item.name.substring(0, 3).toUpperCase()}</span>`;
+      const dRank = item.rank || F1Service.getDriverRank(item.name || item.code || item.shortName) || 1;
+      subtitle = item.team || 'F1 Driver';
+      avatarHtml = `
+        <span class="discover-avatar f1-rank-avatar" style="background: ${teamColor}; color: ${textColor}; font-weight: 800; font-size: 10px; border: 1.5px solid ${teamColor}; min-width: 26px; height: 22px; padding: 0 4px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 6px ${hexToRgba(teamColor, 0.4)};">
+          P${dRank}
+        </span>
+      `;
     }
-  } else {
-    const sportKey = item.sport === 'cricket' ? 'cr' : 'fb';
-    const logoUrl = item.logo || (item.sport === 'cricket' ? FavoritesService.getCricketLogo(item.name, item.shortName) : FavoritesService.getFootballLogo(item.name, item.shortName, item.id));
-    avatarHtml = renderTeamAvatar(logoUrl, item.name, item.shortName, sportKey);
   }
 
   card.innerHTML = `
@@ -958,7 +1053,7 @@ function createDiscoverCard(item) {
       ${avatarHtml}
       <div class="discover-meta">
         <span class="discover-name">${item.name}</span>
-        <span class="discover-sub">${subtitle}</span>
+        <span class="discover-sub" ${isF1 && !isConstructor && teamColor ? `style="color: ${teamColor}; font-weight: 600;"` : ''}>${subtitle}</span>
       </div>
     </div>
     <button class="follow-toggle-btn ${isFollowed ? 'is-following' : ''}">
@@ -1183,8 +1278,12 @@ function isMatchWithin24Hours(m) {
       }
       if (m.isUpcoming) {
         const diff = startMs - now;
-        if (diff >= -3600000 && diff <= TWENTY_FOUR_HOURS_MS) {
+        if (diff >= -3600000 && diff <= (TWENTY_FOUR_HOURS_MS + FINISHED_BUFFER_MS)) {
           return true;
+        }
+        if (m.dateDisplay) {
+          const dLower = String(m.dateDisplay).toLowerCase();
+          if (dLower.includes('today') || dLower.includes('tomorrow')) return true;
         }
       }
     }
@@ -1651,13 +1750,24 @@ function renderLeagueAvatar(logoUrl, name = '', sport = 'football', extraClass =
 }
 
 /**
- * Clean Overs Formatter (avoids duplicate 'ov ov' artifacts)
+ * Clean Overs Formatter (avoids duplicate 'ov ov' artifacts and 'Yet to bat ov')
  */
 function formatCricketOvers(ov) {
   if (!ov) return '';
   const clean = String(ov).replace(/\s*ov(ers)?/gi, '').trim();
-  if (!clean || clean === '0' || clean === '0.0') return '';
+  if (!clean || clean === '0' || clean === '0.0' || clean.toLowerCase().includes('yet to bat')) return '';
+  if (!/^\d+(\.\d+)?$/.test(clean)) return '';
   return `(${clean} ov)`;
+}
+
+/**
+ * Clean Score Formatter (ensures 'Yet to bat' displays as '-' without duplicating scores)
+ */
+function formatCricketScore(score) {
+  if (!score) return '-';
+  const s = String(score).trim();
+  if (!s || s === '-' || s.toLowerCase().includes('yet to bat')) return '-';
+  return s;
 }
 
 /**
@@ -1804,30 +1914,66 @@ function createCricketCard(m) {
 
   // Ball-by-ball telemetry (both previous and current overs supported)
   const renderBallPill = (ball) => {
-    const b = String(ball).trim();
-    let pCls = 'dot';
-    let label = b;
-    const bLower = b.toLowerCase();
-    if (b === '0' || b === '•' || b === '.' || b === '') {
-      pCls = 'dot';
-      label = '•';
-    } else if (b === '4') {
-      pCls = 'four';
-      label = '4';
-    } else if (b === '6') {
-      pCls = 'six';
-      label = '6';
-    } else if (bLower.includes('w') || bLower === 'out') {
-      pCls = 'wicket';
-      label = 'W';
-    } else if (bLower.includes('nb') || bLower.includes('wd') || bLower.includes('lb') || bLower.includes('b')) {
-      pCls = 'extra';
-      label = b.toUpperCase();
-    } else {
-      pCls = 'runs';
-      label = b;
+    const raw = String(ball || '').trim();
+    if (!raw) return '<span class="ball-pill dot">•</span>';
+
+    const b = raw.toLowerCase();
+
+    // 1. Dot Balls
+    if (b === '0' || b === '•' || b === '.' || b === 'dot') {
+      return `<span class="ball-pill dot">•</span>`;
     }
-    return `<span class="ball-pill ${pCls}">${label}</span>`;
+
+    // 2. Boundaries
+    if (b === '4' || b === 'four') {
+      return `<span class="ball-pill four">4</span>`;
+    }
+    if (b === '6' || b === 'six') {
+      return `<span class="ball-pill six">6</span>`;
+    }
+
+    // 3. Combined Wicket on Extra (e.g. WD+W, W+WD, NB+W, W+NB)
+    if (b.includes('+') && (b.includes('out') || b.includes('wkt') || b.includes('w')) && (b.includes('wd') || b.includes('nb'))) {
+      return `<span class="ball-pill wicket">${raw.toUpperCase()}</span>`;
+    }
+
+    // 4. Wides (WD, 1WD, 2WD, 4WD, 5WD, WIDE) -> STRICTLY EXTRA (Amber), NEVER WICKET!
+    if (b.includes('wd') || b.includes('wide')) {
+      return `<span class="ball-pill extra">${raw.toUpperCase()}</span>`;
+    }
+
+    // 5. No Balls (NB, 1NB, 2NB, 4NB, 6NB, NOBALL) -> STRICTLY EXTRA (Amber)
+    if (b.includes('nb') || b.includes('noball')) {
+      return `<span class="ball-pill extra">${raw.toUpperCase()}</span>`;
+    }
+
+    // 6. Leg Byes (LB, 1LB, 2LB, 4LB, LEGBYE) -> EXTRA
+    if (b.includes('lb') || b.includes('legbye')) {
+      return `<span class="ball-pill extra">${raw.toUpperCase()}</span>`;
+    }
+
+    // 7. Byes (B, 1B, 2B, 3B, 4B, BYE, BYES) -> EXTRA
+    if (b === 'b' || b === 'bye' || b === 'byes' || /^\d+b$/i.test(b) || /^b\d+$/i.test(b)) {
+      return `<span class="ball-pill extra">${raw.toUpperCase()}</span>`;
+    }
+
+    // 8. Pure Wickets (W, OUT, WKT, WICKET, RUNOUT, STUMPED, BOWLED, LBW, W1, 1W)
+    const isPureWicket = b === 'w' || b === 'wkt' || b === 'wicket' || b === 'out' || 
+                         b === 'runout' || b === 'stumped' || b === 'bowled' || b === 'lbw' ||
+                         /^w\+?\d+$/i.test(b) || /^\d+\+?w$/i.test(b);
+
+    if (isPureWicket) {
+      let wLabel = 'W';
+      if (/^w\+?(\d+)$/i.test(b)) {
+        wLabel = `W+${b.match(/^w\+?(\d+)$/i)[1]}`;
+      } else if (/^(\d+)\+?w$/i.test(b)) {
+        wLabel = `W+${b.match(/^(\d+)\+?w$/i)[1]}`;
+      }
+      return `<span class="ball-pill wicket">${wLabel}</span>`;
+    }
+
+    // 9. General Runs (1, 2, 3, 5, 7) or fallback
+    return `<span class="ball-pill runs">${raw}</span>`;
   };
 
   let overPillsHtml = '';
@@ -1898,17 +2044,152 @@ function createCricketCard(m) {
     }
   }
 
-  // Match Situation & Target
+  // Detect match break / halt (Innings Break, Rain Delay, Tea, Lunch, Drinks, Stumps, etc.)
+  const detectCricketBreak = (text) => {
+    if (!text) return null;
+    const t = String(text).toLowerCase();
+    if (t.includes('innings break') || t.includes('inn break')) return 'Innings Break';
+    if (t.includes('rain') || t.includes('wet grounds') || t.includes('delay')) return 'Rain Delay';
+    if (t.includes('tea break') || t.includes('tea')) return 'Tea';
+    if (t.includes('lunch break') || t.includes('lunch')) return 'Lunch';
+    if (t.includes('drinks break') || t.includes('drinks')) return 'Drinks';
+    if (t.includes('stumps')) return 'Stumps';
+    if (t.includes('timeout') || t.includes('time out')) return 'Timeout';
+    return null;
+  };
+
+  const getCricketBattingIndex = (match) => {
+    if (!match || !match.isLive) return 0;
+
+    // 1. Explicit isBatting flags
+    if (match.team1?.isBatting && !match.team2?.isBatting) return 1;
+    if (match.team2?.isBatting && !match.team1?.isBatting) return 2;
+
+    // 2. Score and overs inspection
+    const t1Ov = parseFloat(String(match.team1?.overs || '').replace(/[^\d.]/g, '')) || 0;
+    const t2Ov = parseFloat(String(match.team2?.overs || '').replace(/[^\d.]/g, '')) || 0;
+    const t1HasScore = Boolean(match.team1?.score && match.team1.score !== '-' && !match.team1.score.toLowerCase().includes('yet'));
+    const t2HasScore = Boolean(match.team2?.score && match.team2.score !== '-' && !match.team2.score.toLowerCase().includes('yet'));
+
+    // 1st innings
+    if (t1HasScore && !t2HasScore) return 1;
+    if (t2HasScore && !t1HasScore) return 2;
+
+    // 2nd innings
+    const isT1Done = t1Ov >= 20.0 || (match.team1?.score && (match.team1.score.includes('/10') || match.team1.score.includes('-10')));
+    const isT2Done = t2Ov >= 20.0 || (match.team2?.score && (match.team2.score.includes('/10') || match.team2.score.includes('-10')));
+
+    if (isT1Done && !isT2Done) return 2;
+    if (isT2Done && !isT1Done) return 1;
+
+    if (t1Ov > 0 && t2Ov === 0) return 1;
+    if (t2Ov > 0 && t1Ov === 0) return 2;
+    if (t2Ov > 0 && t1Ov > 0) return t2Ov < t1Ov ? 2 : 1;
+
+    return 1;
+  };
+
+  const matchBreak = detectCricketBreak(m.breakStatus) || detectCricketBreak(m.situation) || detectCricketBreak(m.statusText);
+  const battingIndex = matchBreak === 'Innings Break' ? 0 : getCricketBattingIndex(m);
+  const isT1Batting = (battingIndex === 1);
+  const isT2Batting = (battingIndex === 2);
+
+  // Latest ball outcome in active live matches
+  let latestBall = m.latestBall || '';
+  if (!latestBall && m.isLive && hasCurrentBalls && m.currentOverBalls.length > 0) {
+    latestBall = m.currentOverBalls[m.currentOverBalls.length - 1];
+  }
+  if (latestBall && (latestBall.includes('.') || latestBall.includes('&') || latestBall.length > 4)) {
+    latestBall = '';
+  }
+
+  // Center Gap Display (Ball Result or Break / Halt cleanly centered between team name and score)
+  const renderCenterGap = (rowTeamIndex) => {
+    if (!m.isLive) return '<div class="cricket-center-gap"></div>';
+
+    // Show break status in center gap
+    if (matchBreak) {
+      if (rowTeamIndex === 1) {
+        return `
+          <div class="cricket-center-gap">
+            <span class="cricket-center-break">${matchBreak}</span>
+          </div>
+        `;
+      }
+      return '<div class="cricket-center-gap"></div>';
+    }
+
+    // Active ball outcome on the batting team's row
+    if (rowTeamIndex === battingIndex && latestBall) {
+      const raw = String(latestBall).trim();
+      const b = raw.toLowerCase();
+
+      let cls = 'runs';
+      let display = raw;
+
+      if (b === '0' || b === '•' || b === '.' || b === 'dot') {
+        cls = 'dot';
+        display = '0';
+      } else if (b === '4' || b === 'four') {
+        cls = 'four';
+        display = '4';
+      } else if (b === '6' || b === 'six') {
+        cls = 'six';
+        display = '6';
+      } else if (b.includes('wd') || b.includes('wide')) {
+        cls = 'extra';
+        display = raw.toUpperCase();
+      } else if (b.includes('nb') || b.includes('noball')) {
+        cls = 'extra';
+        display = raw.toUpperCase();
+      } else if (b.includes('lb') || b.includes('legbye') || b === 'b' || b === 'bye') {
+        cls = 'extra';
+        display = raw.toUpperCase();
+      } else if (b === 'w' || b === 'wkt' || b === 'wicket' || b === 'out' || b === 'runout' || b === 'stumped' || b === 'bowled' || b === 'lbw' || /^w\+?\d+$/i.test(b) || /^\d+\+?w$/i.test(b)) {
+        cls = 'wicket';
+        display = (b === 'w' || b === 'out' || b === 'wkt' || b === 'wicket') ? 'W' : raw.toUpperCase();
+      }
+
+      return `
+        <div class="cricket-center-gap">
+          <span class="cricket-center-ball ${cls}">${display}</span>
+        </div>
+      `;
+    }
+
+    return '<div class="cricket-center-gap"></div>';
+  };
+
+  // Match Situation & Target (Only for active Live matches with commentary/target or Finished matches with a result)
   let situationHtml = '';
-  const sitText = m.situation || m.statusText || '';
-  if (sitText) {
+  let sitText = cleanCricketText(m.situation || '');
+
+  // NEVER show single ball codes or bare numbers in the bottom situation bar
+  if (sitText && (sitText.toLowerCase() === (latestBall || '').toLowerCase() || /^([0-6]|w|wd|nb|bye|lb|dot|\d)$/i.test(sitText.trim()))) {
+    sitText = '';
+  }
+
+  // If sitText duplicates the match break shown in center gap, clear it
+  if (sitText && matchBreak && sitText.toLowerCase() === matchBreak.toLowerCase()) {
+    sitText = '';
+  }
+
+  if (m.isLive) {
+    if (sitText || m.target || m.crr || m.rrr) {
+      situationHtml = `
+        <div class="cricket-situation">
+          ${m.target ? `<span class="situation-target">🎯 Target: ${m.target} •</span>` : ''}
+          ${sitText ? `<span class="situation-text">${sitText}</span>` : ''}
+          ${(m.crr || m.rrr) ? `
+            <span class="situation-rates">(CRR: <strong>${m.crr || '-'}</strong>${m.rrr ? ` • RRR: <strong>${m.rrr}</strong>` : ''})</span>
+          ` : ''}
+        </div>
+      `;
+    }
+  } else if (m.isFinished && sitText && !sitText.toLowerCase().includes('match finished')) {
     situationHtml = `
       <div class="cricket-situation">
-        ${m.target ? `<span class="situation-target">🎯 Target: ${m.target} •</span>` : ''}
         <span class="situation-text">${sitText}</span>
-        ${(m.crr || m.rrr) ? `
-          <span class="situation-rates">(CRR: <strong>${m.crr || '-'}</strong>${m.rrr ? ` • RRR: <strong>${m.rrr}</strong>` : ''})</span>
-        ` : ''}
       </div>
     `;
   }
@@ -1934,10 +2215,11 @@ function createCricketCard(m) {
         <div class="team-info">
           ${renderTeamAvatar(m.team1.flag, m.team1.name, m.team1.shortName, 'cr')}
           <span class="team-name ${isT1Followed ? 'is-fav' : ''}">${m.team1.name || m.team1.shortName}</span>
-          ${m.team1.isBatting ? '<span class="batting-badge" title="Currently Batting">🏏 Batting</span>' : ''}
+          ${isT1Batting ? '<span class="batting-badge" title="Currently Batting">🏏 Batting</span>' : ''}
         </div>
+        ${renderCenterGap(1)}
         <div class="cricket-score-block">
-          <span class="cricket-runs">${m.team1.score || '-'}</span>
+          <span class="cricket-runs">${formatCricketScore(m.team1.score)}</span>
           ${t1OversText ? `<span class="cricket-overs">${t1OversText}</span>` : ''}
         </div>
       </div>
@@ -1945,10 +2227,11 @@ function createCricketCard(m) {
         <div class="team-info">
           ${renderTeamAvatar(m.team2.flag, m.team2.name, m.team2.shortName, 'cr')}
           <span class="team-name ${isT2Followed ? 'is-fav' : ''}">${m.team2.name || m.team2.shortName}</span>
-          ${m.team2.isBatting ? '<span class="batting-badge" title="Currently Batting">🏏 Batting</span>' : ''}
+          ${isT2Batting ? '<span class="batting-badge" title="Currently Batting">🏏 Batting</span>' : ''}
         </div>
+        ${renderCenterGap(2)}
         <div class="cricket-score-block">
-          <span class="cricket-runs">${m.team2.score || '-'}</span>
+          <span class="cricket-runs">${formatCricketScore(m.team2.score)}</span>
           ${t2OversText ? `<span class="cricket-overs">${t2OversText}</span>` : ''}
         </div>
       </div>
@@ -2007,28 +2290,48 @@ function createFollowedF1Card(item) {
   const card = document.createElement('div');
   card.className = `match-card ${item.isLive ? 'is-live' : ''}`;
 
+  const statusClass = item.isLive ? 'live' : (item.isFinished ? 'finished' : 'upcoming');
+  const targetUrl = item.url || (item.isLive ? 'https://www.formula1.com/en/f1-live.html' : 'https://www.formula1.com/en/racing/2026.html');
+
+  // Format date badge for top bar (e.g. "• 24–26 Sep 2026" or "• 9–11 Oct")
+  const dateBadgeHtml = item.dateDisplay 
+    ? `<span style="font-size: 10px; color: var(--accent-purple-highlight); margin-left: 3px; font-weight: 600;">• ${item.dateDisplay}</span>` 
+    : '';
+
+  const sessionDetail = item.sessionDetailDisplay || item.sessionName || item.officialName || 'Grand Prix';
+  const circuitDisplay = item.circuit ? `<span style="font-size: 10px; color: var(--text-dim); opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;" title="${item.circuit}">📍 ${item.circuit}</span>` : '';
+
   card.innerHTML = `
     <div class="card-top-bar">
       <div class="sport-badge">
-        <span>🏎️ F1 • ${item.grandPrix}</span>
+        <span class="card-league-title">🏎️ F1 • ${item.grandPrix || 'Formula 1'}</span>
+        ${dateBadgeHtml}
       </div>
-      <span class="match-status-badge ${item.isLive ? 'live' : 'finished'}">${item.statusText}</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span class="match-status-badge ${statusClass}">${item.timeDisplay || item.statusText || 'Scheduled'}</span>
+      </div>
     </div>
-    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px;">
-      ${item.officialName || item.sessionName}
+    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 7px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+      <span style="font-weight: 500; color: #d4d4d8;">⏱️ ${sessionDetail}</span>
+      ${circuitDisplay}
     </div>
     <div class="f1-leaderboard-list">
-      ${item.followedDrivers.map(d => `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: rgba(255,255,255,0.025); border-radius: 4px; border-left: 3px solid ${d.teamColor}; margin-bottom: 3px;">
-          <span style="font-weight: 600; color: #ffffff; font-size: 11.5px;">P${d.position} • ${d.name} <span style="color: var(--text-dim); font-size: 9.5px;">(${d.team})</span></span>
-          <span style="font-family: monospace; font-weight: 700; color: #ffffff; font-size: 11px;">${d.gap}</span>
-        </div>
-      `).join('')}
+      ${(item.followedDrivers || []).map(d => {
+        const teamCol = d.teamColor || F1Service.getTeamColor(d.team || d.name);
+        return `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: rgba(255,255,255,0.025); border-radius: 4px; border-left: 3.5px solid ${teamCol}; margin-bottom: 3px;">
+            <span style="font-weight: 600; color: #ffffff; font-size: 11.5px;">
+              P${d.position} • ${d.name} <span style="color: ${teamCol}; font-size: 9.5px; font-weight: 600;">(${d.team})</span>
+            </span>
+            <span style="font-family: monospace; font-weight: 700; color: #ffffff; font-size: 11px;">${d.gap || ''}</span>
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
 
   card.addEventListener('click', () => {
-    openTab('https://www.formula1.com/en/f1-live.html');
+    openTab(targetUrl);
   });
 
   return card;
@@ -2107,7 +2410,16 @@ function renderSettingsChips() {
 
 function createChip(sport, item) {
   const chip = document.createElement('span');
-  chip.className = `team-chip ${item.isLeague ? 'league-chip' : ''}`;
+  const isF1 = sport === 'f1';
+  const teamColor = isF1 ? (item.color || F1Service.getTeamColor(item.team || item.name)) : null;
+
+  chip.className = `team-chip ${item.isLeague ? 'league-chip' : ''} ${isF1 ? 'f1-chip' : ''}`;
+  
+  if (isF1 && teamColor) {
+    chip.style.borderLeft = `3px solid ${teamColor}`;
+    chip.style.background = `linear-gradient(90deg, ${hexToRgba(teamColor, 0.15)} 0%, rgba(255, 255, 255, 0.04) 40%)`;
+  }
+
   let tag = '';
   let logoUrl = item.logo || '';
   if (item.isLeague) {
@@ -2119,7 +2431,17 @@ function createChip(sport, item) {
     if (sport === 'cricket') logoUrl = FavoritesService.getCricketLogo(item.name, item.shortName);
   }
 
-  const logoHtml = logoUrl ? `<img src="${logoUrl}" class="chip-logo" loading="lazy" decoding="async" width="12" height="12" onerror="this.style.display='none'">` : '';
+  let logoHtml = '';
+  if (logoUrl) {
+    logoHtml = `<img src="${logoUrl}" class="chip-logo" loading="lazy" decoding="async" width="12" height="12" onerror="this.style.display='none'">`;
+  } else if (isF1 && teamColor) {
+    const isBright = ['#27F4D2', '#52E252', '#64C4FF', '#B6BABD', '#FF8000', '#6692FF'].includes((teamColor || '').toUpperCase());
+    const textColor = isBright ? '#09090b' : '#ffffff';
+    const isConstructor = Boolean(item.isTeam || item.category === 'Constructor');
+    const rank = item.rank || (isConstructor ? F1Service.getConstructorRank(item.name || item.id) : F1Service.getDriverRank(item.name || item.code || item.shortName)) || '';
+    const badgeText = rank ? (isConstructor ? `#${rank}` : `P${rank}`) : (item.number ? `#${item.number}` : (item.code || item.shortName || 'F1'));
+    logoHtml = `<span style="display:inline-flex; align-items:center; justify-content:center; background:${teamColor}; color:${textColor}; font-weight:800; font-size:8.5px; padding:1px 4.5px; border-radius:3px; margin-right:4px;">${badgeText}</span>`;
+  }
 
   chip.innerHTML = `
     ${logoHtml}

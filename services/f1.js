@@ -27,16 +27,237 @@ export class F1Service {
     'kick sauber': '#52E252',
     'sauber': '#52E252',
     'racing bulls': '#6692FF',
-    'rb': '#6692FF'
+    'rb': '#6692FF',
+    'audi': '#52E252',
+    'toro rosso': '#6692FF',
+    'alphatauri': '#6692FF'
   };
 
-  static getTeamColor(teamName) {
-    if (!teamName) return '#e10600';
-    const lower = teamName.toLowerCase().trim();
+  static DRIVER_TEAM_MAP = {
+    'verstappen': 'red bull',
+    'max verstappen': 'red bull',
+    'ver': 'red bull',
+    'norris': 'mclaren',
+    'lando norris': 'mclaren',
+    'nor': 'mclaren',
+    'leclerc': 'ferrari',
+    'charles leclerc': 'ferrari',
+    'lec': 'ferrari',
+    'hamilton': 'ferrari',
+    'lewis hamilton': 'ferrari',
+    'ham': 'ferrari',
+    'piastri': 'mclaren',
+    'oscar piastri': 'mclaren',
+    'pia': 'mclaren',
+    'russell': 'mercedes',
+    'george russell': 'mercedes',
+    'rus': 'mercedes',
+    'antonelli': 'mercedes',
+    'andrea kimi antonelli': 'mercedes',
+    'kimi antonelli': 'mercedes',
+    'ant': 'mercedes',
+    'alonso': 'aston martin',
+    'fernando alonso': 'aston martin',
+    'alo': 'aston martin',
+    'stroll': 'aston martin',
+    'lance stroll': 'aston martin',
+    'str': 'aston martin',
+    'sainz': 'williams',
+    'carlos sainz': 'williams',
+    'sai': 'williams',
+    'albon': 'williams',
+    'alexander albon': 'williams',
+    'alex albon': 'williams',
+    'alb': 'williams',
+    'gasly': 'alpine',
+    'pierre gasly': 'alpine',
+    'gas': 'alpine',
+    'colapinto': 'alpine',
+    'franco colapinto': 'alpine',
+    'col': 'alpine',
+    'doohan': 'alpine',
+    'jack doohan': 'alpine',
+    'doo': 'alpine',
+    'tsunoda': 'racing bulls',
+    'yuki tsunoda': 'racing bulls',
+    'tsu': 'racing bulls',
+    'hadjar': 'red bull',
+    'isack hadjar': 'red bull',
+    'had': 'red bull',
+    'lawson': 'racing bulls',
+    'liam lawson': 'racing bulls',
+    'law': 'racing bulls',
+    'lindblad': 'racing bulls',
+    'arvid lindblad': 'racing bulls',
+    'lin': 'racing bulls',
+    'hulkenberg': 'kick sauber',
+    'hülkenberg': 'kick sauber',
+    'nico hulkenberg': 'kick sauber',
+    'nico hülkenberg': 'kick sauber',
+    'hul': 'kick sauber',
+    'bortoleto': 'kick sauber',
+    'gabriel bortoleto': 'kick sauber',
+    'bor': 'kick sauber',
+    'bearman': 'haas',
+    'oliver bearman': 'haas',
+    'ollie bearman': 'haas',
+    'bea': 'haas',
+    'ocon': 'haas',
+    'esteban ocon': 'haas',
+    'oco': 'haas'
+  };
+
+  static getTeamColor(identifier) {
+    if (!identifier) return '#e10600';
+    const lower = String(identifier).toLowerCase().trim();
+    
+    // Direct constructor match
     for (const [key, val] of Object.entries(this.TEAM_COLORS)) {
-      if (lower.includes(key) || key.includes(lower)) return val;
+      if (lower === key || lower.includes(key) || key.includes(lower)) return val;
     }
+
+    // Driver name or code match
+    const mappedTeam = this.DRIVER_TEAM_MAP[lower] || this.DRIVER_TEAM_MAP[lower.replace(/[^a-z0-9]/g, '')];
+    if (mappedTeam && this.TEAM_COLORS[mappedTeam]) {
+      return this.TEAM_COLORS[mappedTeam];
+    }
+
+    // Partial driver match
+    for (const [driverKey, teamKey] of Object.entries(this.DRIVER_TEAM_MAP)) {
+      if (lower.includes(driverKey) || driverKey.includes(lower)) {
+        if (this.TEAM_COLORS[teamKey]) return this.TEAM_COLORS[teamKey];
+      }
+    }
+
     return '#e10600';
+  }
+
+  static CONSTRUCTOR_RANKS = {
+    'mercedes': 1,
+    'mercedes-amg': 1,
+    'mercedes f1 team': 1,
+    'ferrari': 2,
+    'scuderia ferrari': 2,
+    'mclaren': 3,
+    'mclaren f1 team': 3,
+    'red bull': 4,
+    'red bull racing': 4,
+    'racing bulls': 5,
+    'rb': 5,
+    'visa cash app rb': 5,
+    'alpine': 6,
+    'bwt alpine': 6,
+    'alpine f1 team': 6,
+    'haas': 7,
+    'haas f1 team': 7,
+    'moneygram haas f1 team': 7,
+    'kick sauber': 8,
+    'sauber': 8,
+    'audi': 8,
+    'stake f1 team kick sauber': 8,
+    'williams': 9,
+    'williams racing': 9,
+    'aston martin': 10,
+    'aston martin aramco': 10,
+    'aston martin f1 team': 10
+  };
+
+  static DRIVER_RANKS = {
+    'antonelli': 1,
+    'andrea kimi antonelli': 1,
+    'kimi antonelli': 1,
+    'ant': 1,
+    'russell': 2,
+    'george russell': 2,
+    'rus': 2,
+    'hamilton': 3,
+    'lewis hamilton': 3,
+    'ham': 3,
+    'leclerc': 4,
+    'charles leclerc': 4,
+    'lec': 4,
+    'norris': 5,
+    'lando norris': 5,
+    'nor': 5,
+    'verstappen': 6,
+    'max verstappen': 6,
+    'ver': 6,
+    'piastri': 7,
+    'oscar piastri': 7,
+    'pia': 7,
+    'hadjar': 8,
+    'isack hadjar': 8,
+    'had': 8,
+    'lawson': 9,
+    'liam lawson': 9,
+    'law': 9,
+    'gasly': 10,
+    'pierre gasly': 10,
+    'gas': 10,
+    'lindblad': 11,
+    'arvid lindblad': 11,
+    'lin': 11,
+    'colapinto': 12,
+    'franco colapinto': 12,
+    'col': 12,
+    'bearman': 13,
+    'oliver bearman': 13,
+    'ollie bearman': 13,
+    'bea': 13,
+    'bortoleto': 14,
+    'gabriel bortoleto': 14,
+    'bor': 14,
+    'hulkenberg': 15,
+    'hülkenberg': 15,
+    'nico hulkenberg': 15,
+    'nico hülkenberg': 15,
+    'hul': 15,
+    'ocon': 16,
+    'esteban ocon': 16,
+    'oco': 16,
+    'alonso': 17,
+    'fernando alonso': 17,
+    'alo': 17,
+    'sainz': 18,
+    'carlos sainz': 18,
+    'sai': 18,
+    'albon': 19,
+    'alexander albon': 19,
+    'alex albon': 19,
+    'alb': 19,
+    'tsunoda': 20,
+    'yuki tsunoda': 20,
+    'tsu': 20,
+    'stroll': 21,
+    'lance stroll': 21,
+    'str': 21,
+    'doohan': 22,
+    'jack doohan': 22,
+    'doo': 22
+  };
+
+  static getDriverRank(identifier) {
+    if (!identifier) return null;
+    const lower = String(identifier).toLowerCase().trim();
+    if (this.DRIVER_RANKS[lower]) return this.DRIVER_RANKS[lower];
+    const clean = lower.replace(/[^a-z0-9]/g, '');
+    if (this.DRIVER_RANKS[clean]) return this.DRIVER_RANKS[clean];
+    for (const [k, v] of Object.entries(this.DRIVER_RANKS)) {
+      if (lower.includes(k) || k.includes(lower)) return v;
+    }
+    return null;
+  }
+
+  static getConstructorRank(identifier) {
+    if (!identifier) return null;
+    const lower = String(identifier).toLowerCase().trim();
+    if (this.CONSTRUCTOR_RANKS[lower]) return this.CONSTRUCTOR_RANKS[lower];
+    const clean = lower.replace(/[^a-z0-9]/g, '');
+    if (this.CONSTRUCTOR_RANKS[clean]) return this.CONSTRUCTOR_RANKS[clean];
+    for (const [k, v] of Object.entries(this.CONSTRUCTOR_RANKS)) {
+      if (lower.includes(k) || k.includes(lower)) return v;
+    }
+    return null;
   }
 
   static formatSessionDate(isoDateStr) {
@@ -142,12 +363,14 @@ export class F1Service {
       // Check if static calendar/results are cached
       let staticData = (!forceRefresh && this._cachedStaticF1 && (nowMs - this._lastStaticFetch < this.F1_CACHE_TTL)) ? this._cachedStaticF1 : null;
 
-      const [sessionInfoRes, calRes, resRes, quaRes, sprRes] = await Promise.allSettled([
+      const [sessionInfoRes, calRes, resRes, quaRes, sprRes, drvStandRes, constStandRes] = await Promise.allSettled([
         fetchWithTimeout(`${this.BASE_URL}/SessionInfo.json`),
         staticData?.calendarData ? Promise.resolve(staticData.calendarData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current.json'),
         staticData?.resultsData ? Promise.resolve(staticData.resultsData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/results.json'),
         staticData?.qualiData ? Promise.resolve(staticData.qualiData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/qualifying.json'),
-        staticData?.sprintData ? Promise.resolve(staticData.sprintData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/sprint.json')
+        staticData?.sprintData ? Promise.resolve(staticData.sprintData) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/last/sprint.json'),
+        staticData?.driverStandings ? Promise.resolve(staticData.driverStandings) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/driverStandings.json'),
+        staticData?.constructorStandings ? Promise.resolve(staticData.constructorStandings) : fetchWithTimeout('https://api.jolpi.ca/ergast/f1/current/constructorStandings.json')
       ]);
 
       const sessionInfo = sessionInfoRes.status === 'fulfilled' ? sessionInfoRes.value : null;
@@ -155,10 +378,48 @@ export class F1Service {
       const resultsData = resRes.status === 'fulfilled' ? resRes.value : null;
       const qualiData = quaRes.status === 'fulfilled' ? quaRes.value : null;
       const sprintData = sprRes.status === 'fulfilled' ? sprRes.value : null;
+      const driverStandingsData = drvStandRes.status === 'fulfilled' ? drvStandRes.value : null;
+      const constructorStandingsData = constStandRes.status === 'fulfilled' ? constStandRes.value : null;
 
-      if (calendarData || resultsData) {
-        this._cachedStaticF1 = { calendarData, resultsData, qualiData, sprintData };
+      if (calendarData || resultsData || driverStandingsData) {
+        this._cachedStaticF1 = { 
+          calendarData, 
+          resultsData, 
+          qualiData, 
+          sprintData,
+          driverStandings: driverStandingsData,
+          constructorStandings: constructorStandingsData
+        };
         this._lastStaticFetch = nowMs;
+      }
+
+      // Update dynamic ranks if live standings data is available
+      const rawDriverList = driverStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+      if (Array.isArray(rawDriverList) && rawDriverList.length > 0) {
+        for (const s of rawDriverList) {
+          const pos = parseInt(s.position);
+          if (pos && s.Driver) {
+            const dName = `${s.Driver.givenName || ''} ${s.Driver.familyName || ''}`.toLowerCase().trim();
+            const dCode = (s.Driver.code || '').toLowerCase().trim();
+            const dFam = (s.Driver.familyName || '').toLowerCase().trim();
+            if (dName) this.DRIVER_RANKS[dName] = pos;
+            if (dCode) this.DRIVER_RANKS[dCode] = pos;
+            if (dFam) this.DRIVER_RANKS[dFam] = pos;
+          }
+        }
+      }
+
+      const rawConstructorList = constructorStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
+      if (Array.isArray(rawConstructorList) && rawConstructorList.length > 0) {
+        for (const s of rawConstructorList) {
+          const pos = parseInt(s.position);
+          if (pos && s.Constructor) {
+            const cName = (s.Constructor.name || '').toLowerCase().trim();
+            const cId = (s.Constructor.constructorId || '').toLowerCase().trim();
+            if (cName) this.CONSTRUCTOR_RANKS[cName] = pos;
+            if (cId) this.CONSTRUCTOR_RANKS[cId] = pos;
+          }
+        }
       }
 
       // If SessionInfo has a valid path, fetch TopThree in parallel

@@ -202,7 +202,7 @@ function updateBadge(liveFollowedCount) {
   }
 }
 
-// Handle desktop notification clicks (e.g. 2-week donation reminder)
+// Handle desktop notification interaction (donation reminders)
 try {
   if (typeof chrome !== 'undefined' && chrome.notifications) {
     chrome.notifications.onButtonClicked?.addListener((notificationId, buttonIndex) => {

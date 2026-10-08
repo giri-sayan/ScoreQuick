@@ -2,13 +2,14 @@
 
   <img src="icons/icon128.png" alt="ScoreQuick Logo" width="100" height="100" />
 
-  # ScoreQuick ⚡
-  ### Real-Time Live Sports Scores & News Extension for Your Browser
+# ScoreQuick ⚡
 
-  [![Manifest V3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-  [![Version](https://img.shields.io/badge/Version-1.2.0-green?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
-  [![Sports](https://img.shields.io/badge/Sports-Football%20%7C%20Cricket%20%7C%20F1-orange?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
-  [![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-red?style=for-the-badge)](#-license--copyright)
+### Real-Time Live Sports Scores & News Extension for Your Browser
+
+[![Manifest V3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+[![Version](https://img.shields.io/badge/Version-1.2.0-green?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
+[![Sports](https://img.shields.io/badge/Sports-Football%20%7C%20Cricket%20%7C%20F1-orange?style=for-the-badge)](https://github.com/giri-sayan/ScoreQuick)
+[![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-red?style=for-the-badge)](#-license--copyright)
 
   <p align="center">
     <strong>ScoreQuick</strong> is a lightning-fast, privacy-focused browser extension providing real-time live scores, comprehensive match centers, followed team hubs, and breaking sports news across <b>Football</b>, <b>Cricket</b>, and <b>Formula 1</b>.
@@ -45,18 +46,21 @@
 ## 🏟️ Sports Coverage
 
 ### ⚽ Football Hub
+
 - **Live Match Centers**: Real-time match minute, live scores, halftime/fulltime scores, penalty shootouts, and aggregate scores.
 - **Competitions Covered**: Premier League, UEFA Champions League, LaLiga, Serie A, Bundesliga, Ligue 1, Europa League, MLS, Saudi Pro League, Indian Super League (ISL), and international tournaments.
 - **Verified Crests**: High-resolution club crests and competition badges.
 - **Direct Match Links**: Fast 1-click navigation to match details and live commentary.
 
 ### 🏏 Cricket Hub
+
 - **Ball-by-Ball Accuracy**: Live runs, wickets, current overs, striker/non-striker on crease, bowler figures, and target situations.
 - **Dual-Feed Redundancy**: Redundant live data architecture for high availability and zero downtime.
 - **Official Tournament Crests**: Dedicated vector crests for **IPL**, **WPL**, **BBL**, **PSL**, **SA20**, **CPL**, **The Hundred**, **MLC**, **ILT20**, **LPL**, **Ranji Trophy**, **County Championship**, **Ashes**, **WTC**, and all **ICC World Cups**.
 - **Unified Series Grouping**: Groups matches by canonical tournament name with dynamic series badges.
 
 ### 🏎️ Formula 1 Hub
+
 - **Race Weekend Schedule**: Live countdown and exact local start times for Practice sessions (FP1, FP2, FP3), Sprint Qualifying, Sprint, Qualifying, and Grand Prix Main Race.
 - **Previous Grand Prix Results**: Podium finishers (P1, P2, P3), pole position setter, and fastest lap holder.
 - **Championship Standings**: Real-time Driver & Constructor championship leaderboards with official team colors.
@@ -67,14 +71,14 @@
 
 ScoreQuick aggregates open and public sports feeds to deliver real-time data:
 
-| Sport / Feature | Underlying Provider & Source APIs |
-| :--- | :--- |
-| **Football Scores & News** | **FotMob API & ESPN Soccer** (Real-time fixtures, live minute, club badges & world news) |
-| **Cricket Scores & Over Telemetry** | **CREX & ESPNcricinfo** (Live ball-by-ball commentary, match scorepanels & HD cover images) |
-| **Formula 1 Schedule & Standings** | **Official Formula 1 Live Timing, Ergast / Jolpica API & ESPN F1** (Grand Prix weekends, driver/constructor standings & news) |
-| **Tournament Vector Crests** | **Akamai Cricket Vectors, ESPN CDN & Official Sport CDNs** |
+| Sport / Feature                     | Underlying Provider & Source APIs                                                                                             |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| **Football Scores & News**          | **FotMob API & ESPN Soccer** (Real-time fixtures, live minute, club badges & world news)                                      |
+| **Cricket Scores & Over Telemetry** | **CREX & ESPNcricinfo** (Live ball-by-ball commentary, match scorepanels & HD cover images)                                   |
+| **Formula 1 Schedule & Standings**  | **Official Formula 1 Live Timing, Ergast / Jolpica API & ESPN F1** (Grand Prix weekends, driver/constructor standings & news) |
+| **Tournament Vector Crests**        | **Akamai Cricket Vectors, ESPN CDN & Official Sport CDNs**                                                                    |
 
-*All product names, logos, and brands are property of their respective owners. Their mention here is solely for informational and source attribution purposes.*
+_All product names, logos, and brands are property of their respective owners. Their mention here is solely for informational and source attribution purposes._
 
 ---
 
@@ -109,10 +113,12 @@ ScoreQuick/
 ### For Users / Developers
 
 1. **Clone or Download the Repository**:
+
    ```bash
    git clone https://github.com/giri-sayan/ScoreQuick.git
    ```
-   *(or download and extract the ZIP file from GitHub)*
+
+   _(or download and extract the ZIP file from GitHub)_
 
 2. **Open Google Chrome Extensions Page**:
    - Navigate to `chrome://extensions/` in your browser address bar.
@@ -130,18 +136,19 @@ ScoreQuick/
 
 ## ⚙️ Configuration & Settings
 
-| Setting | Options | Default | Description |
-| :--- | :--- | :--- | :--- |
-| **Auto-Refresh Rate** | `10s`, `30s`, `1m` | `10s` | Interval for background and active popup score refresh |
-| **Default Startup View** | Discover, Followed, Football, Cricket, F1, News | Discover | Initial tab displayed upon extension installation |
-| **Followed Filter** | All / Followed | Followed | Toggle to view all matches vs followed teams only |
-| **Desktop Alerts** | On / Off | On | Instant notification when followed team starts/scores |
+| Setting                  | Options                                         | Default  | Description                                            |
+| :----------------------- | :---------------------------------------------- | :------- | :----------------------------------------------------- |
+| **Auto-Refresh Rate**    | `10s`, `30s`, `1m`                              | `10s`    | Interval for background and active popup score refresh |
+| **Default Startup View** | Discover, Followed, Football, Cricket, F1, News | Discover | Initial tab displayed upon extension installation      |
+| **Followed Filter**      | All / Followed                                  | Followed | Toggle to view all matches vs followed teams only      |
+| **Desktop Alerts**       | On / Off                                        | On       | Instant notification when followed team starts/scores  |
 
 ---
 
 ## 🔒 Permissions & Privacy
 
 ScoreQuick is built with a **strict privacy-first philosophy**:
+
 - ❌ **No telemetry, analytics, or user tracking.**
 - ❌ **No personal data collection.**
 - ✅ **Local Storage only**: Followed teams, preferred refresh intervals, and cached feeds are stored strictly inside your browser's local `chrome.storage`.
@@ -160,6 +167,7 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 ## 👨‍💻 Author
 
 **Sayan Giri**
+
 - GitHub: [@giri-sayan](https://github.com/giri-sayan)
 - Repository: [https://github.com/giri-sayan/ScoreQuick](https://github.com/giri-sayan/ScoreQuick)
 
@@ -167,6 +175,6 @@ ScoreQuick is built with a **strict privacy-first philosophy**:
 
 ## 📄 License & Copyright
 
-**Copyright © 2026 Giri Sayan. All Rights Reserved.**
+**Copyright © 2026 Sayan Giri. All Rights Reserved.**
 
 This software is **Proprietary and Confidential**. Unauthorized copying, reproduction, distribution, decompilation, reverse engineering, or commercial use of this codebase, via any medium, is strictly prohibited without prior written permission. See the [LICENSE](LICENSE) file for the full proprietary terms.

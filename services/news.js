@@ -131,140 +131,26 @@ export class NewsService {
   }
 
   /**
-   * 2. 🏏 Cricket News Aggregator
+   * 2. 🏏 Cricket News Aggregator (Powered by CREX)
    */
   static async fetchCricketNews() {
     try {
-      const [espnResult, liveResult] = await Promise.allSettled([
-        this.fetchEspnCricketNews(),
-        this.fetchLiveCricketNews()
-      ]);
-
-      const espnNews = espnResult.status === 'fulfilled' ? espnResult.value : [];
-      const liveNews = liveResult.status === 'fulfilled' ? liveResult.value : [];
-
-      // Deduplicate by normalized headline
-      const seen = new Set();
-      const combined = [];
-
-      for (const item of [...espnNews, ...liveNews]) {
-        if (!item || !item.title) continue;
-        const norm = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
-        if (seen.has(norm)) continue;
-        seen.add(norm);
-        combined.push(item);
-      }
-
-      // Sort by newest first
-      combined.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      return combined.slice(0, 30);
+      const liveNews = await this.fetchLiveCricketNews();
+      return liveNews;
     } catch (err) {
-      console.warn('Cricket news aggregator error:', err.message);
+      console.warn('[ScoreQuick] Cricket news fetch error:', err.message);
       return [];
     }
   }
 
   /**
-   * 2a. 🏏 Official ESPNcricinfo News (RSS Feed with working HD Cover Images)
-   */
-  static async fetchEspnCricketNews() {
-    try {
-      const res = await fetchWithTimeout('https://www.espncricinfo.com/rss/content/story/feeds/0.xml', {}, 3000);
-      if (!res.ok) {
-        return this.fetchEspnCricketNewsFallback();
-      }
-
-      const xml = await res.text();
-      const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-      const articles = [];
-      let match;
-      let count = 0;
-
-      while ((match = itemRegex.exec(xml)) !== null && count < 25) {
-        const chunk = match[1];
-        const rawTitle = (chunk.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || '';
-        const rawCover = (chunk.match(/<coverImages>([\s\S]*?)<\/coverImages>/i) || [])[1] || '';
-        const rawMedia = (chunk.match(/<media:content[^>]+url=["']([^"']+)["']/i) || [])[1] || '';
-        const rawEnclosure = (chunk.match(/<enclosure[^>]+url=["']([^"']+)["']/i) || [])[1] || '';
-        const rawDesc = (chunk.match(/<description>([\s\S]*?)<\/description>/i) || [])[1] || '';
-        const rawLink = (chunk.match(/<link>([\s\S]*?)<\/link>/i) || chunk.match(/<url>([\s\S]*?)<\/url>/i) || [])[1] || '';
-        const rawGuid = (chunk.match(/<guid>([\s\S]*?)<\/guid>/i) || [])[1] || '';
-        const rawPubDate = (chunk.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1] || '';
-
-        const title = decodeHtmlEntities(rawTitle.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1'));
-        const lead = decodeHtmlEntities(rawDesc.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ''));
-        const link = (rawLink || rawGuid).replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-        const rawImg = (rawCover || rawMedia || rawEnclosure || '').replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-        const img = cleanImageUrl(rawImg);
-        const timeMs = rawPubDate ? new Date(rawPubDate).getTime() : Date.now() - (count * 3600000);
-
-        if (title) {
-          articles.push({
-            id: `cr_espn_news_${count}_${timeMs}`,
-            sport: 'cricket',
-            source: 'ESPNcricinfo',
-            title: title,
-            lead: lead,
-            url: link || 'https://www.espncricinfo.com',
-            imageUrl: img,
-            timestamp: timeMs,
-            timeDisplay: this.formatTimeAgo(timeMs)
-          });
-          count++;
-        }
-      }
-
-      if (articles.length === 0) {
-        return this.fetchEspnCricketNewsFallback();
-      }
-
-      return articles;
-    } catch (err) {
-      console.warn('ESPN Cricinfo RSS news fetch error, falling back:', err.message);
-      return this.fetchEspnCricketNewsFallback();
-    }
-  }
-
-  /**
-   * 2a-fallback. ESPNcricinfo JSON API Fallback
-   */
-  static async fetchEspnCricketNewsFallback() {
-    try {
-      const res = await fetchWithTimeout('https://site.api.espn.com/apis/site/v2/sports/cricket/8048/news', {}, 3000);
-      if (!res.ok) return [];
-
-      const data = await res.json();
-      const items = Array.isArray(data.articles) ? data.articles : [];
-
-      return items.slice(0, 20).map(item => {
-        const timeMs = item.published ? new Date(item.published).getTime() : Date.now();
-        const articleUrl = item.links?.web?.href || 'https://www.espncricinfo.com';
-        const img = cleanImageUrl(item.images?.[0]?.url);
-
-        return {
-          id: `cr_espn_fallback_${item.id || Math.random()}`,
-          sport: 'cricket',
-          source: 'ESPNcricinfo',
-          title: decodeHtmlEntities(item.headline || 'Cricket News'),
-          lead: decodeHtmlEntities(item.description || ''),
-          url: articleUrl,
-          imageUrl: img,
-          timestamp: timeMs,
-          timeDisplay: this.formatTimeAgo(timeMs)
-        };
-      });
-    } catch (err) {
-      console.warn('ESPN Cricinfo fallback error:', err.message);
-      return [];
-    }
-  }
-
-  /**
-   * 2b. 🏏 Live Cricket News Scraper
+   * 2a. 🏏 Live Cricket News from CREX
    */
   static async fetchLiveCricketNews() {
     try {
-      const res = await fetchWithTimeout('https://crex.com/news', {}, 3000);
+      const res = await fetchWithTimeout('https://crex.com/news', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      }, 3500);
       if (!res.ok) return [];
 
       const html = await res.text();
@@ -281,7 +167,6 @@ export class NewsService {
         ...(homeData.cricketNews || [])
       ];
 
-      // Deduplicate by ID
       const seen = new Set();
       const articles = [];
 
@@ -297,99 +182,84 @@ export class NewsService {
         const img = cleanImageUrl(item.img);
 
         articles.push({
-          id: `cr_news_${item.id || Math.random()}`,
+          id: `cr_crex_${item.id || Math.random()}`,
           sport: 'cricket',
           source: 'CREX',
           title: decodeHtmlEntities(item.title),
-          lead: decodeHtmlEntities(item.author ? `Reporting by ${item.author}` : (item.desc || '')),
+          lead: decodeHtmlEntities(item.author ? `Reporting by ${item.author}` : (item.desc || item.subTitle || '')),
           url: articleUrl,
           imageUrl: img,
           timestamp: timeMs,
           timeDisplay: this.formatTimeAgo(timeMs)
         });
 
-        if (articles.length >= 20) break;
+        if (articles.length >= 25) break;
       }
 
       return articles;
     } catch (err) {
-      console.warn('CREX news fetch error:', err.message);
+      console.warn('[ScoreQuick] CREX news fetch error:', err.message);
       return [];
     }
   }
 
   /**
-   * 3. 🏎️ Official ESPN Formula 1 News (Rich HD Images)
+   * 3. 🏎️ Official Formula 1 News (Direct from formula1.com)
    */
   static async fetchF1News() {
     try {
-      const urls = [
-        'https://site.api.espn.com/apis/site/v2/sports/racing/f1/news?limit=50',
-        'https://site.web.api.espn.com/apis/site/v2/sports/racing/f1/news?limit=50'
-      ];
+      const res = await fetchWithTimeout('https://www.formula1.com/en/latest/all', {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      }, 3500);
+      if (!res.ok) return [];
 
-      let data = null;
-      for (const url of urls) {
-        try {
-          const res = await fetchWithTimeout(url, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-          }, 3000);
-          if (res.ok) {
-            data = await res.json();
-            if (data?.articles && Array.isArray(data.articles) && data.articles.length > 0) {
-              break;
-            }
-          }
-        } catch (_) {
-          // Fallback to next endpoint
-        }
-      }
+      const html = await res.text();
+      const cardRegex = /<li[^>]+id="article-item-([^"]+)"[\s\S]*?<\/li>/gi;
+      let cardMatch;
+      const articles = [];
+      let count = 0;
 
-      if (!data?.articles || !Array.isArray(data.articles)) {
-        return [];
-      }
+      while ((cardMatch = cardRegex.exec(html)) !== null) {
+        const cardHtml = cardMatch[0];
+        const id = cardMatch[1];
 
-      const rawArticles = [];
-      for (const item of data.articles) {
-        if (!item || !item.headline) continue;
+        const linkMatch = cardHtml.match(/href="(\/en\/latest\/article\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+        if (!linkMatch) continue;
 
-        const timeMs = item.published ? new Date(item.published).getTime() : Date.now();
-        const rawImg = item.images?.[0]?.url || item.images?.find(i => i.url)?.url || '';
-        const img = cleanImageUrl(rawImg);
-        const articleUrl = item.links?.web?.href || item.links?.mobile?.href || 'https://www.espn.com/f1';
-        const categories = (item.categories || []).map(c => c.description).filter(Boolean);
+        const relativeUrl = linkMatch[1];
+        let title = linkMatch[2].replace(/<[^>]+>/g, '').trim();
+        title = decodeHtmlEntities(title);
 
-        rawArticles.push({
-          id: `f1_espn_${item.id || Math.random()}`,
+        // Extract HD Image
+        const imgMatch = cardHtml.match(/<img[^>]+src=["']([^"']+)["']/i) || cardHtml.match(/srcset=["']([^"'\s,]+)/i);
+        let img = imgMatch ? imgMatch[1] : '';
+        if (img.startsWith('//')) img = 'https:' + img;
+        img = cleanImageUrl(img);
+
+        // Extract Tag / Category
+        const tagMatch = cardHtml.match(/<span[^>]*class="[^"]*tag[^"]*"[^>]*>([\s\S]*?)<\/span>/i)
+          || cardHtml.match(/<p[^>]*class="[^"]*tag[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+        const tag = tagMatch ? tagMatch[1].replace(/<[^>]+>/g, '').trim() : 'Formula 1';
+
+        articles.push({
+          id: `f1_f1official_${id}`,
           sport: 'f1',
-          source: 'ESPN F1',
-          title: decodeHtmlEntities(item.headline),
-          lead: decodeHtmlEntities(item.description || ''),
-          url: articleUrl,
+          source: 'Formula 1',
+          title: title,
+          lead: '',
+          url: `https://www.formula1.com${relativeUrl}`,
           imageUrl: img,
-          timestamp: timeMs,
-          timeDisplay: this.formatTimeAgo(timeMs),
-          categories: categories
+          tag: tag,
+          timestamp: Date.now() - (count * 1800000),
+          timeDisplay: this.formatTimeAgo(Date.now() - (count * 1800000))
         });
+        count++;
+        if (articles.length >= 25) break;
       }
 
-      // Deduplicate by normalized title
-      const seen = new Set();
-      const unique = [];
-
-      for (const item of rawArticles) {
-        if (!item || !item.title) continue;
-        const norm = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
-        if (seen.has(norm)) continue;
-        seen.add(norm);
-        unique.push(item);
-      }
-
-      // Sort newest first
-      unique.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      return unique.slice(0, 35);
+      return articles;
     } catch (err) {
-      console.warn('ESPN F1 News fetch error:', err);
+      console.warn('[ScoreQuick] Official Formula 1 news fetch error:', err);
       return [];
     }
   }

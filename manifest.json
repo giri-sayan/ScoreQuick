@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ScoreQuick - Fastest Live Stats",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Real-time live scores for Football, Cricket and Formula 1. Follow favorite teams and drivers with instant goal & wicket alerts.",
   "action": {
     "default_popup": "popup/popup.html",
@@ -19,8 +19,7 @@
   "permissions": [
     "storage",
     "alarms",
-    "notifications",
-    "tabs"
+    "notifications"
   ],
   "host_permissions": [
     "https://www.fotmob.com/*",
@@ -39,8 +38,8 @@
     "https://site.web.api.espn.com/*",
     "https://site.api.espn.com/*",
     "https://*.espncdn.com/*",
-    "https://*.espncricinfo.com/*",
-    "https://*.cricinfo.com/*",
+    "https://*.cricbuzz.com/*",
+    "https://static.cricbuzz.com/*",
     "https://*.hscicdn.com/*",
     "https://*.imgci.com/*",
     "https://cricketvectors.akamaized.net/*",
